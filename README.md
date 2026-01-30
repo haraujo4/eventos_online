@@ -1,113 +1,245 @@
 # Plataforma de Eventos Corporativos
 
-Uma solução completa e personalizável para transmissão de eventos ao vivo, vídeo sob demanda, e interação com audiência em tempo real.
+Uma solução completa e personalizável para transmissão de eventos ao vivo, vídeo sob demanda, e interação com audiência em tempo real. Sistema multi-idioma com painel administrativo robusto e recursos avançados de moderação e analytics.
 
-## 🚀 Funcionalidades Principais
+## ✨ Recursos Principais
 
-### Para Participantes
-- **Player de Vídeo**: Suporte a transmissões ao vivo (HLS/YouTube) e vídeos gravados (VOD).
-- **Chat Interativo**: Chat em tempo real com emojis, badges para moderadores e suporte a mensagens do sistema.
-- **Área do Usuário**: Login, cadastro e suporte a Autenticação de Dois Fatores (2FA).
-- **Responsivo**: Interface adaptada para desktop e mobile.
+### 🎥 **Transmissão e Player**
+- **Transmissões ao Vivo**: Suporte a HLS e YouTube Live
+- **Vídeos Sob Demanda (VOD)**: Upload e reprodução de vídeos gravados
+- **Multi-Idiomas**: Streams simultâneos em Português, Inglês e Espanhol
+- **Player Adaptativo**: Interface responsiva com controles intuitivos
+- **Thumbnails Personalizados**: Preview visual para cada transmissão
 
-### Para Administradores
-- **Dashboard de Analytics**: Acompanhe métricas em tempo real (usuários online, mensagens) e exporte relatórios detalhados de audiência em Excel.
-- **Gestão de Mídia**: Configure streams ao vivo, faça upload de vídeos e thumbnails (armazenados localmente ou no MinIO).
-- **Moderação de Chat**: Ferramentas para banir usuários, apagar mensagens e destacar interações importantes.
-- **Customização**:
-  - Personalize o nome e logo do evento.
-  - Defina campos personalizados no formulário de cadastro (CPF, Empresa, Cargo, etc.).
-  - Configure o método de autenticação (Aberto, Padrão ou 2FA).
-- **Gestão de Usuários**: Importe usuários em massa via Excel, edite perfis e gerencie permissões.
+### 💬 **Interação em Tempo Real**
+- **Chat ao Vivo**: 
+  - Mensagens em tempo real via WebSocket
+  - Modo Global ou por Transmissão
+  - Moderação automática e manual
+  - Destaque de mensagens importantes
+  - Emojis e badges para moderadores
+- **Enquetes Interativas**:
+  - Criação multi-idioma (automática via idioma do stream)
+  - Exibição de resultados em tempo real
+  - Suporte a múltiplas opções
+  - Analytics detalhado de votação
+- **Sistema de Perguntas**:
+  - Envio de perguntas pela audiência
+  - Exibição em tela (global ou por idioma)
+  - Moderação administrativa
+- **Comentários**:
+  - Sistema de comentários moderados
+  - Aprovação antes de exibição
+  - Título e descrição para cada comentário
+- **Reações**:
+  - Like/Dislike nas transmissões
+  - Visualização em tempo real dos feedbacks
 
-## 🛠️ Tecnologias Utilizadas
+### 🎯 **Painel Administrativo Completo**
 
-### Backend (`/api`)
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Banco de Dados**: PostgreSQL
-- **Armazenamento**: MinIO (Compatível com S3)
-- **Real-time**: Socket.IO (Chat e Analytics)
-- **Email**: Nodemailer (SMTP)
-- **Autenticação**: JWT (JSON Web Tokens) & Bcrypt
+#### **Dashboard e Analytics**
+- Visualizadores em tempo real
+- Gráficos históricos de audiência
+- Métricas de engajamento (mensagens, reações, votos)
+- Exportação de relatórios em Excel
+- Logs de sessão de usuários
 
-### Frontend (`/frontend`)
-- **Framework**: React.js 19
-- **Build Tool**: Vite
-- **Estilização**: TailwindCSS 4
-- **Estado**: Zustand
-- **Vídeo**: React Player
-- **Gráficos**: Recharts
-- **Formatação**: date-fns
+#### **Gestão de Mídia**
+- Upload de vídeos e posters
+- Configuração de streams por idioma
+- Armazenamento no MinIO (S3-compatible)
+- Organização de transmissões ativas/finalizadas
 
-### Infraestrutura
-- **Docker Compose**: Orquestração dos serviços de banco de dados e armazenamento.
+#### **Moderação Avançada**
+- **Chat**:
+  - Aprovação/rejeição de mensagens pendentes
+  - Banimento de usuários
+  - Exclusão de mensagens
+  - Destaque de mensagens importantes
+  - Tabs separadas: Pendentes / Aprovadas / Histórico Completo
+- **Perguntas**: Aprovação e exibição controlada
+- **Comentários**: Moderação prévia antes de publicação
+- **Feedback em Tempo Real**: Notificações para usuários banidos/mensagens deletadas
+
+#### **Gestão de Usuários**
+- CRUD completo de usuários
+- Importação em massa via Excel
+- Exportação de base de usuários
+- Ativação/desativação de contas
+- Gerenciamento de roles (Admin/Moderador/User)
+
+#### **Configuração do Evento**
+- **Branding**:
+  - Upload de logo do evento
+  - Upload de papel de parede (tela de login)
+  - Nome do evento customizável
+- **Autenticação**:
+  - Campos personalizados no cadastro
+  - Suporte a 2FA (Autenticação de Dois Fatores)
+  - Controle de registro (aberto/fechado)
+- **Recursos Habilitáveis**:
+  - Toggle de Chat (Global/Por Stream)
+  - Toggle de Enquetes
+  - Toggle de Perguntas
+  - Toggle de Comentários
+  - Moderação opcional para cada recurso
+
+#### **Relatórios de Interações**
+- **Relatório de Reações**: Histórico de likes/dislikes por usuário
+- **Relatório de Votos**: Detalhamento completo das votações em enquetes
+- **Relatório de Perguntas**: Lista de todas as perguntas enviadas
+- Busca e filtros avançados
+- Exportação individual para Excel
+
+#### **⚠️ Danger Zone**
+- **Resetar Evento**: Limpa toda a base de dados do evento
+  - Remove: usuários (exceto admins), mensagens, enquetes, perguntas, comentários, reações
+  - Preserva: configurações, logo, streams
+  - Dupla confirmação via modal customizado
+
+### 🌍 **Experiência do Usuário**
+
+- **Multi-Idioma**: Interface adaptável em PT/EN/ES
+- **Notificações em App**: 
+  - Novas enquetes
+  - Novas perguntas exibidas
+  - Mensagens do sistema
+- **Tema Dark/Light**: Alternância de tema com persistência
+- **Responsivo**: Interface mobile-first otimizada
+- **Player Focado**: Modo sem distrações quando recursos são desabilitados
 
 ## 🏗️ Arquitetura
 
-O projeto segue uma arquitetura cliente-servidor:
-1.  **Frontend (SPA)**: Aplicação React que consome a API REST para dados e conecta via WebSocket para interações em tempo real.
-2.  **API Gateway / Backend**: Servidor Node.js que gerencia regras de negócio, autenticação e proxy de eventos WebSocket.
-3.  **Serviços de Dados**:
-    - **PostgreSQL**: Persistência de usuários, logs de chat, configurações e sessões.
-    - **MinIO**: Object Storage para vídeos, imagens e uploads em geral.
+### **Backend (Controller → Service → Repository)**
+```
+api/
+├── src/
+│   ├── config/          # Configurações (DB, MinIO)
+│   ├── controllers/     # Camada HTTP (request/response)
+│   ├── services/        # Lógica de negócio
+│   ├── repositories/    # Acesso aos dados (SQL)
+│   ├── routes/          # Definição de rotas REST
+│   ├── middleware/      # Auth, CORS, Upload
+│   └── server.js        # Entry point + Socket.IO
+├── scripts/
+│   ├── migrations/      # Scripts de migração do BD
+│   └── utilities/       # Ferramentas de debug
+└── uploads/             # Storage temporário
+```
 
-## 🚀 Como Executar Localmente
+### **Frontend (React + Zustand)**
+```
+frontend/
+├── src/
+│   ├── components/
+│   │   ├── admin/       # Componentes do painel admin
+│   │   ├── player/      # Player e recursos interativos
+│   │   └── ...          # Componentes gerais
+│   ├── pages/           # Login, Player, Admin
+│   ├── store/           # Estado global (Zustand)
+│   ├── services/        # API client (Axios)
+│   └── App.jsx          # Roteamento principal
+└── public/              # Assets estáticos
+```
+
+## 🛠️ Stack Tecnológica
+
+### Backend
+- **Node.js** v18+ / Express.js
+- **PostgreSQL** (dados relacionais)
+- **MinIO** (object storage S3-compatible)
+- **Socket.IO** (WebSocket para real-time)
+- **JWT** + Bcrypt (autenticação)
+- **Nodemailer** (envio de emails 2FA)
+- **Multer** (upload de arquivos)
+
+### Frontend
+- **React** v19 / Vite
+- **TailwindCSS** v4 (estilização)
+- **Zustand** (gerenciamento de estado)
+- **React Player** (player de vídeo)
+- **Recharts** (gráficos de analytics)
+- **XLSX** (exportação de Excel)
+- **Lucide React** (ícones)
+- **React Toastify** (notificações)
+
+### Infraestrutura
+- **Docker Compose** (PostgreSQL + MinIO)
+
+## 🚀 Como Executar
 
 ### Pré-requisitos
-- Node.js (v18+)
+- Node.js v18+
 - Docker e Docker Compose
+- npm ou yarn
 
-### Passo 1: Iniciar Serviços de Infraestrutura
-Na raiz do projeto, suba o banco de dados e o MinIO:
+### 1. Iniciar Infraestrutura
 ```bash
 docker-compose up -d
 ```
-*Isso iniciará o PostgreSQL na porta 5432, o MinIO na 9000/9001 e criará os buckets necessários automaticamente via script.*
+*Inicia PostgreSQL (porta 5432) e MinIO (portas 9000/9001)*
 
-### Passo 2: Configurar Variáveis de Ambiente
-O backend já possui um arquivo `.env` configurado para o ambiente local padrão. Caso precise alterar senhas ou portas, edite `/api/.env`.
-
-### Passo 3: Executar a API (Backend)
-Em um novo terminal:
+### 2. Configurar Backend
 ```bash
 cd api
 npm install
 npm run dev
 ```
-*A API rodará em `http://localhost:3000`.*
+*API rodará em `http://localhost:3000`*
 
-### Passo 4: Executar a Aplicação (Frontend)
-Em outro terminal:
+### 3. Configurar Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-*O Frontend rodará em `http://localhost:5173` (ou porta similar indicada).*
+*Frontend rodará em `http://localhost:5173`*
 
 ## 🔐 Acesso Inicial
-- **Login Admin**: Cadastre um usuário via interface e altere sua role no banco de dados para `admin` ou use as credenciais padrão se houver seed (usuários: `admin`, senha: `123`).
-- **MinIO Console**: Acesse `http://localhost:9001` (User: `minioadmin`, Pass: `minioadmin`).
 
-## 📂 Estrutura de Pastas
+### Credenciais Padrão
+- **Admin**: `admin` / `123`
+- **User**: `user` / `123`
+- **MinIO Console**: `http://localhost:9001` (user: `minioadmin`, pass: `minioadmin`)
 
-```
-/
-├── api/                # Backend Node.js
-│   ├── src/
-│   │   ├── config/     # Conexões DB e MinIO
-│   │   ├── controllers/# Lógica dos endpoints
-│   │   ├── services/   # Regras de negócio
-│   │   ├── models/     # Modelos de dados
-│   │   └── routes/     # Definição de rotas da API
-│   └── uploads/        # Pasta temporária/fallback para uploads locais
-│
-├── frontend/           # Frontend React
-│   ├── src/
-│   │   ├── components/ # Componentes UI reutilizáveis
-│   │   ├── pages/      # Páginas principais (Admin, Player, Login)
-│   │   └── store/      # Gerenciamento de estado (Zustand)
-│
-└── docker-compose.yml  # Configuração dos containers
-```
+### Primeiros Passos
+1. Acesse `http://localhost:5173`
+2. Login como admin
+3. Configure o evento em **Configuração**:
+   - Defina nome e logo do evento
+   - Configure idiomas das transmissões
+   - Habilite/desabilite recursos
+4. Adicione streams em **Mídia**
+5. Crie enquetes, perguntas e gerencie usuários!
+
+## 📊 Recursos Adicionais
+
+### Moderação
+- Acesso de **Moderadores** aos recursos: Chat e Recursos (Enquetes/Perguntas/Comentários)
+- Moderadores não têm acesso a: Dashboard, Usuários, Mídia, Configuração
+
+### Scoping de Chat
+- **Global**: Mensagens visíveis em todas as transmissões
+- **Por Transmissão**: Mensagens isoladas por idioma/stream
+
+### Notificações
+- Sistema de notificações em app para:
+  - Novas enquetes disponíveis
+  - Perguntas sendo exibidas em tela
+  - Ações de moderação (banimento, mensagens deletadas)
+
+## 🎨 Capturas de Tela
+
+*(Adicione aqui screenshots do player, painel admin, chat, enquetes, etc.)*
+
+## 📄 Licença
+
+Este projeto está sob licença MIT.
+
+## 🤝 Contribuições
+
+Contribuições, issues e feature requests são bem-vindos!
+
+---
+
+**Desenvolvido com ❤️ para eventos corporativos memoráveis**
