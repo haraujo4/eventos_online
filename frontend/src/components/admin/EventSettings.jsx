@@ -6,6 +6,8 @@ import { toast } from 'react-toastify';
 export function EventSettings() {
     const { eventSettings, authFields, fetchSettings, updateSettings, updateAuthFields, uploadLogo, uploadBackground, removeBackground, resetEvent } = useAdminStore();
     const [loading, setLoading] = useState(false);
+    const [showResetModal, setShowResetModal] = useState(false);
+    const [resetStep, setResetStep] = useState(1);
 
 
     const [settingsForm, setSettingsForm] = useState({
@@ -157,25 +159,17 @@ export function EventSettings() {
         }
     };
 
-    const handleResetEvent = async () => {
-        const confirmed = window.confirm(
-            '⚠️ ATENÇÃO: Esta ação é IRREVERSÍVEL!\n\n' +
-            'Você está prestes a EXCLUIR PERMANENTEMENTE:\n' +
-            '• Todos os usuários (exceto admins)\n' +
-            '• Todas as mensagens, enquetes, perguntas\n' +
-            '• Comentários e reações\n\n' +
-            'Tem certeza que deseja continuar?'
-        );
+    const handleResetEvent = () => {
+        setShowResetModal(true);
+        setResetStep(1);
+    };
 
-        if (!confirmed) return;
+    const confirmResetStep1 = () => {
+        setResetStep(2);
+    };
 
-        const doubleConfirm = window.confirm(
-            'ÚLTIMA CONFIRMAÇÃO\n\n' +
-            'Esta ação é irreversível. Clique em OK para confirmar ou Cancelar para voltar.'
-        );
-
-        if (!doubleConfirm) return;
-
+    const confirmResetStep2 = async () => {
+        setShowResetModal(false);
         setLoading(true);
         try {
             await resetEvent();
@@ -184,7 +178,13 @@ export function EventSettings() {
             toast.error('❌ Erro ao resetar evento');
         } finally {
             setLoading(false);
+            setResetStep(1);
         }
+    };
+
+    const cancelReset = () => {
+        setShowResetModal(false);
+        setResetStep(1);
     };
 
     if (!eventSettings) return <div className="p-8 text-center text-gray-600 dark:text-gray-400">Carregando configurações...</div>;
@@ -623,6 +623,112 @@ export function EventSettings() {
                     </div>
                 </div>
             </div>
+
+            {/* Reset Confirmation Modal */}
+            {showResetModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border-2 border-red-200 dark:border-red-900">
+                        {resetStep === 1 ? (
+                            <>
+                                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                                            <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-red-600 dark:text-red-400">ATENÇÃO!</h3>
+                                    </div>
+                                    <p className="text-gray-600 dark:text-gray-300 text-sm">Esta ação é <strong>IRREVERSÍVEL</strong></p>
+                                </div>
+
+                                <div className="p-6">
+                                    <p className="text-gray-700 dark:text-gray-300 mb-4 font-semibold">
+                                        Você está prestes a <span className="text-red-600 dark:text-red-400">EXCLUIR PERMANENTEMENTE</span>:
+                                    </p>
+                                    <ul className="space-y-2 mb-6">
+                                        <li className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+                                            <span className="text-red-500 mt-1">•</span>
+                                            <span>Todos os usuários (exceto administradores)</span>
+                                        </li>
+                                        <li className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+                                            <span className="text-red-500 mt-1">•</span>
+                                            <span>Todas as mensagens do chat</span>
+                                        </li>
+                                        <li className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+                                            <span className="text-red-500 mt-1">•</span>
+                                            <span>Todas as enquetes e votos</span>
+                                        </li>
+                                        <li className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+                                            <span className="text-red-500 mt-1">•</span>
+                                            <span>Todas as perguntas enviadas</span>
+                                        </li>
+                                        <li className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+                                            <span className="text-red-500 mt-1">•</span>
+                                            <span>Todos os comentários e reações</span>
+                                        </li>
+                                    </ul>
+
+                                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-6">
+                                        <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                                            ℹ️ As configurações do evento serão preservadas
+                                        </p>
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={cancelReset}
+                                            className="flex-1 px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg font-medium transition-colors"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={confirmResetStep1}
+                                            className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            Continuar
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-red-50 dark:bg-red-900/20">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="p-2 bg-red-600 dark:bg-red-700 rounded-lg animate-pulse">
+                                            <AlertTriangle className="w-6 h-6 text-white" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-red-700 dark:text-red-300">ÚLTIMA CONFIRMAÇÃO</h3>
+                                    </div>
+                                </div>
+
+                                <div className="p-6">
+                                    <p className="text-gray-700 dark:text-gray-300 mb-6 text-center text-lg font-semibold">
+                                        Tem <strong className="text-red-600 dark:text-red-400">ABSOLUTA CERTEZA</strong> que deseja prosseguir?
+                                    </p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">
+                                        Esta ação não pode ser desfeita.
+                                    </p>
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={cancelReset}
+                                            className="flex-1 px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg font-medium transition-colors"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={confirmResetStep2}
+                                            className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <AlertTriangle className="w-4 h-4" />
+                                            CONFIRMAR EXCLUSÃO
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

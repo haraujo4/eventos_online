@@ -177,17 +177,20 @@ class EventController {
             // Assuming most have ON DELETE CASCADE, but explicit deletion is safer.
 
             // 1. Delete Interactions
-            await db.query('DELETE FROM chat_messages');
+            await db.query('DELETE FROM messages');
             await db.query('DELETE FROM questions');
             await db.query('DELETE FROM comments');
-            await db.query('DELETE FROM reactions');
+            await db.query('DELETE FROM stream_reactions');
 
             // 2. Delete Polls (Votes and Options cascade usually, but let's be thorough)
             await db.query('DELETE FROM poll_votes');
             await db.query('DELETE FROM poll_options');
             await db.query('DELETE FROM polls');
 
-            // 3. Delete Users (Except Admins)
+            // 3. Delete Session Logs (references users)
+            await db.query("DELETE FROM session_logs WHERE user_id IN (SELECT id FROM users WHERE role != 'admin')");
+
+            // 4. Delete Users (Except Admins)
             // 'admin' role is usually hardcoded, verify your roles.
             await db.query("DELETE FROM users WHERE role != 'admin'");
 
