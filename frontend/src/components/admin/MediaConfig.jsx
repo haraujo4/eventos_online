@@ -6,7 +6,7 @@ import { Save, Loader2, Play, Plus, Trash2, Radio, Edit, X } from 'lucide-react'
 export function MediaConfig() {
     const { mediaSettings, updateMediaSettings, addStream, removeStream, updateStream, toggleLive } = useAdminStore();
 
-    
+
     const [streamLang, setStreamLang] = useState('');
     const [streamTitle, setStreamTitle] = useState('');
     const [streamDesc, setStreamDesc] = useState('');
@@ -14,7 +14,7 @@ export function MediaConfig() {
     const [streamPoster, setStreamPoster] = useState('');
     const [videoFile, setVideoFile] = useState(null);
     const [posterFile, setPosterFile] = useState(null);
-    const [inputType, setInputType] = useState('youtube'); 
+    const [inputType, setInputType] = useState('youtube');
 
     const [editingStreamId, setEditingStreamId] = useState(null);
     const [previewStreamId, setPreviewStreamId] = useState(null);
@@ -37,15 +37,15 @@ export function MediaConfig() {
         setStreamTitle(stream.title || '');
         setStreamDesc(stream.description || '');
         setStreamUrl(stream.url);
-        setStreamPoster(stream.posterUrl || ''); 
+        setStreamPoster(stream.posterUrl || '');
         setEditingStreamId(stream.id);
         setVideoFile(null);
         setPosterFile(null);
-        
+
         if (stream.type) {
             setInputType(stream.type);
         } else {
-            
+
             setInputType(stream.file_path ? 'file' : 'url');
         }
     };
@@ -60,7 +60,7 @@ export function MediaConfig() {
                     description: streamDesc,
                     url: streamUrl,
                     posterUrl: streamPoster,
-                    type: inputType 
+                    type: inputType
                 }, videoFile, posterFile);
             } else {
                 await addStream({
@@ -69,7 +69,7 @@ export function MediaConfig() {
                     description: streamDesc,
                     url: inputType !== 'file' ? streamUrl : '',
                     posterUrl: streamPoster,
-                    type: inputType 
+                    type: inputType
                 }, videoFile, posterFile);
             }
             resetForm();
@@ -100,11 +100,11 @@ export function MediaConfig() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
-                    {}
+                    { }
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                         <h3 className="text-lg font-semibold text-gray-800 mb-4">Streams Multi-idioma</h3>
 
-                        {}
+                        { }
                         <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
                             <div className="flex justify-between items-center mb-4">
                                 <span className="text-sm font-bold text-gray-700 uppercase tracking-wider">
@@ -159,7 +159,7 @@ export function MediaConfig() {
                                             value={inputType}
                                             onChange={(e) => {
                                                 setInputType(e.target.value);
-                                                
+
                                                 if (e.target.value === 'file') setStreamUrl('');
                                             }}
                                         >
@@ -201,7 +201,7 @@ export function MediaConfig() {
                                                     value={streamUrl}
                                                     onChange={(e) => {
                                                         const val = e.target.value;
-                                                        
+
                                                         const srcMatch = val.match(/src="([^"]+)"/);
                                                         if (srcMatch && srcMatch[1]) {
                                                             setStreamUrl(srcMatch[1]);
@@ -233,7 +233,49 @@ export function MediaConfig() {
                                         <span className="self-center text-xs text-gray-400">OU</span>
                                         <input
                                             type="file"
-                                            accept="image}
+                                            accept="image/*"
+                                            className="hidden"
+                                            id="poster-upload"
+                                            onChange={(e) => setPosterFile(e.target.files[0])}
+                                        />
+                                        <label
+                                            htmlFor="poster-upload"
+                                            className="cursor-pointer px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                                        >
+                                            Upload
+                                        </label>
+                                    </div>
+                                    {posterFile && <p className="text-xs text-green-600 mt-1">Arquivo selecionado: {posterFile.name}</p>}
+                                </div>
+
+                                <div className="md:col-span-2 flex justify-end gap-3 pt-4">
+                                    {editingStreamId && (
+                                        <button
+                                            type="button"
+                                            onClick={resetForm}
+                                            className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                                        >
+                                            Cancelar
+                                        </button>
+                                    )}
+                                    <button
+                                        type="submit"
+                                        className="flex items-center px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+                                    >
+                                        <Save className="w-4 h-4 mr-2" />
+                                        {editingStreamId ? 'Atualizar Stream' : 'Adicionar Stream'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="lg:col-span-1 space-y-6">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 sticky top-6">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Preview & Status</h3>
+
+                        <div className="aspect-video bg-black rounded-lg overflow-hidden relative shadow-md">
                             {(mediaSettings.isLive || editingStreamId || previewStreamId) ? (
                                 <div className="w-full h-full relative">
                                     {(editingStreamId && inputType === 'embed') || (!editingStreamId && mediaSettings.streams.find(s => s.id === previewStreamId)?.type === 'embed') ? (
@@ -264,7 +306,7 @@ export function MediaConfig() {
                                             height="100%"
                                             controls={true}
                                             playing={true}
-                                            muted={true} 
+                                            muted={true}
                                             onError={(e) => console.error("Preview Error:", e)}
                                             config={{
                                                 file: { attributes: { poster: mediaSettings.streams.find(s => s.id === previewStreamId)?.posterUrl } }
