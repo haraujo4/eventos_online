@@ -179,7 +179,44 @@ docker-compose up -d
 ```
 *Inicia PostgreSQL (porta 5432) e MinIO (portas 9000/9001)*
 
-### 2. Configurar Backend
+### 2. Configurar Variáveis de Ambiente
+
+Crie o arquivo `.env` no diretório `/api`:
+
+```bash
+cd api
+cp .env.example .env
+```
+
+Edite o arquivo `.env` com as seguintes variáveis:
+
+```env
+# Database Configuration
+DB_USER=admin                    # Usuário do PostgreSQL
+DB_HOST=localhost                # Host do banco (use 'localhost' local, IP/domínio em produção)
+DB_NAME=events_db                # Nome do banco de dados
+DB_PASSWORD=admin123             # Senha do banco (ALTERE em produção!)
+DB_PORT=5432                     # Porta do PostgreSQL
+
+# MinIO Configuration
+MINIO_ENDPOINT=localhost         # Endpoint do MinIO
+MINIO_PORT=9000                  # Porta da API do MinIO
+MINIO_USE_SSL=false              # Use 'true' em produção com HTTPS
+MINIO_ACCESS_KEY=minioadmin      # Access Key do MinIO (ALTERE em produção!)
+MINIO_SECRET_KEY=minioadmin      # Secret Key do MinIO (ALTERE em produção!)
+MINIO_PUBLIC_HOST=localhost      # Host público para acesso via browser
+
+# Authentication
+JWT_SECRET=your_super_secret_key_123   # Chave secreta para JWT (GERAR NOVA em produção!)
+```
+
+**⚠️ IMPORTANTE - Produção:**
+- Altere `DB_PASSWORD` para uma senha forte
+- Altere `MINIO_ACCESS_KEY` e `MINIO_SECRET_KEY`
+- Gere um `JWT_SECRET` único: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`
+- Configure `MINIO_USE_SSL=true` e use domínio com HTTPS
+
+### 3. Configurar Backend
 ```bash
 cd api
 npm install
@@ -187,7 +224,7 @@ npm run dev
 ```
 *API rodará em `http://localhost:3000`*
 
-### 3. Configurar Frontend
+### 4. Configurar Frontend
 ```bash
 cd frontend
 npm install
