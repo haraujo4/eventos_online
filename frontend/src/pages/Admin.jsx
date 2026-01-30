@@ -44,13 +44,13 @@ export default function Admin() {
         { id: 'settings', label: 'Configuração', icon: Settings },
     ].filter(item => {
         if (user?.role === 'moderator') {
-            return item.id === 'chat';
+            return item.id === 'chat' || item.id === 'recursos';
         }
         return true;
     });
 
     useEffect(() => {
-        if (user?.role === 'moderator' && activeTab !== 'chat') {
+        if (user?.role === 'moderator' && activeTab !== 'chat' && activeTab !== 'recursos') {
             setActiveTab('chat');
         }
     }, [user, activeTab]);

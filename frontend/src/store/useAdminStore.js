@@ -314,7 +314,7 @@ export const useAdminStore = create((set, get) => ({
 
     fetchChatHistory: async () => {
         try {
-            const response = await api.get('/chat');
+            const response = await api.get('/chat?includeAll=true');
             set({ chatHistory: response.data });
         } catch (err) {
             console.error('Error fetching chat history:', err);
@@ -602,6 +602,25 @@ export const useAdminStore = create((set, get) => ({
             get().fetchQuestions();
         } catch (err) {
             console.error('Error deleting question:', err);
+            throw err;
+        }
+    },
+
+    // Event Reset
+    resetEvent: async () => {
+        try {
+            await api.delete('/settings/reset');
+            // Clear local state after reset
+            set({
+                users: [],
+                chatHistory: [],
+                polls: [],
+                pendingComments: [],
+                approvedComments: [],
+                questions: []
+            });
+        } catch (err) {
+            console.error('Error resetting event:', err);
             throw err;
         }
     }

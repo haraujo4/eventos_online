@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAdminStore } from '../../store/useAdminStore';
-import { Save, Upload, Trash2, Plus, Shield, Settings, Image } from 'lucide-react';
+import { Save, Upload, Trash2, Plus, Shield, Settings, Image, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 export function EventSettings() {
-    const { eventSettings, authFields, fetchSettings, updateSettings, updateAuthFields, uploadLogo, uploadBackground, removeBackground } = useAdminStore();
+    const { eventSettings, authFields, fetchSettings, updateSettings, updateAuthFields, uploadLogo, uploadBackground, removeBackground, resetEvent } = useAdminStore();
     const [loading, setLoading] = useState(false);
 
 
@@ -14,6 +14,8 @@ export function EventSettings() {
         two_factor_enabled: false,
         allow_registration: true,
         chat_enabled: true,
+        chat_moderated: false,
+        chat_global: true,
         polls_enabled: true,
         comments_enabled: true,
         questions_enabled: true,
@@ -35,6 +37,8 @@ export function EventSettings() {
                 two_factor_enabled: eventSettings.two_factor_enabled || false,
                 allow_registration: eventSettings.allow_registration ?? true,
                 chat_enabled: eventSettings.chat_enabled ?? true,
+                chat_moderated: eventSettings.chat_moderated || false,
+                chat_global: eventSettings.chat_global ?? true,
                 polls_enabled: eventSettings.polls_enabled ?? true,
                 comments_enabled: eventSettings.comments_enabled ?? true,
                 questions_enabled: eventSettings.questions_enabled ?? true,
@@ -148,6 +152,36 @@ export function EventSettings() {
             toast.success('Campos atualizados com sucesso!');
         } catch (error) {
             toast.error('Falha ao atualizar campos');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResetEvent = async () => {
+        const confirmed = window.confirm(
+            '⚠️ ATENÇÃO: Esta ação é IRREVERSÍVEL!\n\n' +
+            'Você está prestes a EXCLUIR PERMANENTEMENTE:\n' +
+            '• Todos os usuários (exceto admins)\n' +
+            '• Todas as mensagens, enquetes, perguntas\n' +
+            '• Comentários e reações\n\n' +
+            'Tem certeza que deseja continuar?'
+        );
+
+        if (!confirmed) return;
+
+        const doubleConfirm = window.confirm(
+            'ÚLTIMA CONFIRMAÇÃO\n\n' +
+            'Esta ação é irreversível. Clique em OK para confirmar ou Cancelar para voltar.'
+        );
+
+        if (!doubleConfirm) return;
+
+        setLoading(true);
+        try {
+            await resetEvent();
+            toast.success('✅ Evento resetado com sucesso!');
+        } catch (error) {
+            toast.error('❌ Erro ao resetar evento');
         } finally {
             setLoading(false);
         }
@@ -314,6 +348,30 @@ export function EventSettings() {
                                         className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
                                     />
                                     <span className="text-sm text-gray-700 dark:text-gray-300">Chat ao Vivo</span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        name="chat_global"
+                                        checked={settingsForm.chat_global}
+                                        onChange={handleSettingsChange}
+                                        disabled={!settingsForm.chat_enabled}
+                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 disabled:opacity-50"
+                                    />
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">Chat Global (Todos os Players)</span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        name="chat_moderated"
+                                        checked={settingsForm.chat_moderated}
+                                        onChange={handleSettingsChange}
+                                        disabled={!settingsForm.chat_enabled}
+                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 disabled:opacity-50"
+                                    />
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">Chat Moderado</span>
                                 </label>
 
                                 <label className="flex items-center gap-3 cursor-pointer">
@@ -525,6 +583,47 @@ export function EventSettings() {
                     </div>
                 </div>
             </div>
+
+            {/* Danger Zone */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 border-2 border-red-200 dark:border-red-900">
+                <div className="flex items-start gap-4">
+                    <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                        <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="text-xl font-bold text-red-600 dark:text-red-400 mb-2">Zona de Perigo</h3>
+                        <p className="text-gray-600 dark:text-gray-400 mb-4">
+                            As ações nesta seção são <strong>irreversíveis</strong> e podem causar perda permanente de dados.
+                        </p>
+
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+                            <h4 className="font-semibold text-red-800 dark:text-red-300 mb-2">Resetar Evento</h4>
+                            <p className="text-sm text-red-700 dark:text-red-400 mb-3">
+                                Esta ação irá <strong>excluir permanentemente</strong>:
+                            </p>
+                            <ul className="text-sm text-red-700 dark:text-red-400 list-disc list-inside space-y-1 mb-4">
+                                <li>Todos os usuários (exceto administradores)</li>
+                                <li>Todas as mensagens do chat</li>
+                                <li>Todas as enquetes e votos</li>
+                                <li>Todas as perguntas enviadas</li>
+                                <li>Todos os comentários e reações</li>
+                            </ul>
+                            <p className="text-xs text-red-600 dark:text-red-500 font-medium mb-4">
+                                ⚠️ As configurações do evento (nome, logo, streams) serão preservadas.
+                            </p>
+
+                            <button
+                                onClick={handleResetEvent}
+                                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                            >
+                                <AlertTriangle className="w-4 h-4" />
+                                Resetar Evento Agora
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
+

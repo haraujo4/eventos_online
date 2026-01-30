@@ -271,6 +271,48 @@ export function MediaConfig() {
                                 </div>
                             </form>
                         </div>
+
+                        {/* List of Registered Streams */}
+                        <div className="space-y-3">
+                            <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 border-b border-gray-100 dark:border-gray-700 pb-2">Streams Cadastradas</h4>
+                            {mediaSettings.streams.length === 0 ? (
+                                <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center italic">Nenhuma stream configurada.</p>
+                            ) : (
+                                mediaSettings.streams.map((stream) => (
+                                    <div key={stream.id} className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-100 dark:border-gray-600 flex items-center justify-between group hover:border-blue-200 dark:hover:border-blue-500/30 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs shrink-0">
+                                                {stream.language.substring(0, 2).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <h5 className="font-semibold text-gray-800 dark:text-white text-sm">{stream.title || stream.language}</h5>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">{stream.url}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => handleEdit(stream)}
+                                                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-white dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                                title="Editar"
+                                            >
+                                                <Edit className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    if (confirm('Tem certeza que deseja remover esta stream?')) {
+                                                        removeStream(stream.id);
+                                                    }
+                                                }}
+                                                className="p-2 text-gray-500 hover:text-red-600 hover:bg-white dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                                title="Remover"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
 

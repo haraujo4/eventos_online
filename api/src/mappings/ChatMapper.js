@@ -12,7 +12,10 @@ class ChatMapper {
             dbRow.content,
             dbRow.is_deleted,
             dbRow.created_at,
-            dbRow.is_highlighted
+            dbRow.is_highlighted,
+            dbRow.stream_id,
+            dbRow.is_approved,
+            dbRow.stream_title || dbRow.stream_language || (dbRow.stream_id ? 'Unknown Stream' : 'Global')
         );
     }
 

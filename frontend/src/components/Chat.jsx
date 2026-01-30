@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Send, User, Smile, Star } from 'lucide-react';
+import { Send, User, Smile, Star, Clock } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { useChatStore } from '../store/useChatStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -16,13 +16,6 @@ export default function Chat() {
 
     const isChatEnabled = eventSettings?.chat_enabled ?? true;
     const isModerator = ['admin', 'moderator'].includes(user?.role);
-
-
-
-
-
-
-
 
 
     const scrollToBottom = () => {
@@ -81,9 +74,10 @@ export default function Chat() {
                 {messages.map((msg) => {
                     const isMe = msg.userId === user?.id;
                     const isModerator = ['admin', 'moderator'].includes(msg.userRole);
+                    const isPending = msg.isPending;
 
                     return (
-                        <div key={msg.id} className={`flex flex-col ${msg.userRole === 'system' ? 'items-center my-4' : (isMe ? 'items-end' : 'items-start')}`}>
+                        <div key={msg.id} className={`flex flex-col ${msg.userRole === 'system' ? 'items-center my-4' : (isMe ? 'items-end' : 'items-start')} ${isPending ? 'opacity-70' : ''}`}>
                             {msg.userRole === 'system' ? (
                                 <span className="text-xs text-center text-gray-500 bg-gray-100 dark:bg-gray-800/50 px-3 py-1 rounded-full">{msg.content}</span>
                             ) : (
@@ -105,6 +99,11 @@ export default function Chat() {
                                                 {isModerator && !isMe && (
                                                     <span className="text-[10px] bg-yellow-400/10 text-yellow-600 dark:text-yellow-400 px-1.5 rounded uppercase font-bold tracking-wider">
                                                         MOD
+                                                    </span>
+                                                )}
+                                                {isPending && (
+                                                    <span className="text-[10px] bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                        <Clock className="w-3 h-3" /> Aguardando
                                                     </span>
                                                 )}
                                             </span>

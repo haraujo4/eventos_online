@@ -13,5 +13,6 @@ router.put('/auth-fields', authenticate, authorize(['admin']), eventController.u
 router.post('/logo', authenticate, authorize(['admin']), upload.single('logo'), eventController.uploadLogo);
 router.post('/background', authenticate, authorize(['admin']), upload.single('background'), eventController.uploadBackground);
 router.delete('/background', authenticate, authorize(['admin']), eventController.removeBackground);
+router.delete('/settings/reset', authenticate, authorize(['admin']), eventController.resetEvent);
 
 module.exports = router;

@@ -7,11 +7,22 @@ class PollController {
         this.toggleStatus = this.toggleStatus.bind(this);
         this.getActivePoll = this.getActivePoll.bind(this);
         this.getAllPolls = this.getAllPolls.bind(this);
+        this.getVotesReport = this.getVotesReport.bind(this);
         this.deletePoll = this.deletePoll.bind(this);
     }
 
     setSocket(io) {
         this.io = io;
+    }
+
+    async getVotesReport(req, res) {
+        try {
+            const report = await pollRepository.getVotesReport();
+            res.json(report);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Failed to fetch votes report' });
+        }
     }
 
     async createPoll(req, res) {

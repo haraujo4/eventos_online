@@ -10,6 +10,7 @@ class EventController {
         this.uploadLogo = this.uploadLogo.bind(this);
         this.uploadBackground = this.uploadBackground.bind(this);
         this.removeBackground = this.removeBackground.bind(this);
+        this.resetEvent = this.resetEvent.bind(this);
     }
 
     setSocket(io) {
@@ -42,22 +43,41 @@ class EventController {
 
             const merged = { ...current, ...updates };
 
-            const query = `
-                UPDATE event_settings 
-                SET event_name = $1, auth_mode = $2, two_factor_enabled = $3, 
-                    smtp_config = $4, allow_registration = $5, chat_enabled = $6,
-                    polls_enabled = $7, comments_enabled = $8, questions_enabled = $9,
-                    updated_at = NOW()
-                WHERE id = $10
-                RETURNING *
-            `;
+            let result;
+            if (merged.id) {
+                const query = `
+                    UPDATE event_settings 
+                    SET event_name = $1, auth_mode = $2, two_factor_enabled = $3, 
+                        smtp_config = $4, allow_registration = $5, chat_enabled = $6,
+                        polls_enabled = $7, comments_enabled = $8, questions_enabled = $9,
+                        chat_moderated = $10, chat_global = $11,
+                        updated_at = NOW()
+                    WHERE id = $12
+                    RETURNING *
+                `;
 
-            const result = await db.query(query, [
-                merged.event_name, merged.auth_mode, merged.two_factor_enabled,
-                merged.smtp_config, merged.allow_registration, merged.chat_enabled,
-                merged.polls_enabled, merged.comments_enabled, merged.questions_enabled,
-                merged.id
-            ]);
+                result = await db.query(query, [
+                    merged.event_name, merged.auth_mode, merged.two_factor_enabled,
+                    merged.smtp_config, merged.allow_registration, merged.chat_enabled,
+                    merged.polls_enabled, merged.comments_enabled, merged.questions_enabled,
+                    merged.chat_moderated, merged.chat_global,
+                    merged.id
+                ]);
+            } else {
+                const query = `
+                    INSERT INTO event_settings 
+                    (event_name, auth_mode, two_factor_enabled, smtp_config, allow_registration, chat_enabled, polls_enabled, comments_enabled, questions_enabled, chat_moderated, chat_global)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                    RETURNING *
+                `;
+
+                result = await db.query(query, [
+                    merged.event_name, merged.auth_mode, merged.two_factor_enabled,
+                    merged.smtp_config, merged.allow_registration, merged.chat_enabled,
+                    merged.polls_enabled, merged.comments_enabled, merged.questions_enabled,
+                    merged.chat_moderated, merged.chat_global
+                ]);
+            }
 
             const updatedSettings = result.rows[0];
 
@@ -146,6 +166,45 @@ class EventController {
         } catch (err) {
             console.error(err);
             res.status(500).json({ message: 'Error removing background' });
+        }
+    }
+
+    async resetEvent(req, res) {
+        try {
+            await db.query('BEGIN');
+
+            // Delete order matters due to FK constraints if CASCADE is not set everywhere.
+            // Assuming most have ON DELETE CASCADE, but explicit deletion is safer.
+
+            // 1. Delete Interactions
+            await db.query('DELETE FROM chat_messages');
+            await db.query('DELETE FROM questions');
+            await db.query('DELETE FROM comments');
+            await db.query('DELETE FROM reactions');
+
+            // 2. Delete Polls (Votes and Options cascade usually, but let's be thorough)
+            await db.query('DELETE FROM poll_votes');
+            await db.query('DELETE FROM poll_options');
+            await db.query('DELETE FROM polls');
+
+            // 3. Delete Users (Except Admins)
+            // 'admin' role is usually hardcoded, verify your roles.
+            await db.query("DELETE FROM users WHERE role != 'admin'");
+
+            await db.query('COMMIT');
+
+            if (this.io) {
+                // Determine what to emit. Maybe force logout for non-admins?
+                // For now, just settings update or similar might be enough, 
+                // but really we want to clear client states.
+                this.io.emit('event:reset');
+            }
+
+            res.json({ message: 'Event reset successfully' });
+        } catch (err) {
+            await db.query('ROLLBACK');
+            console.error('Error resetting event:', err);
+            res.status(500).json({ message: 'Error resetting event' });
         }
     }
 }

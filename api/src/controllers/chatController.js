@@ -5,8 +5,32 @@ class ChatController {
 
     async getHistory(req, res) {
         try {
-            const messages = await this.chatService.getRecentMessages();
+            const { streamId, includeAll } = req.query;
+            const { user } = req;
+            const isAdmin = user && (user.role === 'admin' || user.role === 'moderator') && includeAll === 'true';
+
+            const messages = await this.chatService.getRecentMessages(streamId, isAdmin);
             res.json(messages);
+        } catch (err) {
+            res.status(500).json({ message: err.message });
+        }
+    }
+
+    async getPending(req, res) {
+        try {
+            const messages = await this.chatService.getPendingMessages();
+            res.json(messages);
+        } catch (err) {
+            res.status(500).json({ message: err.message });
+        }
+    }
+
+    async approve(req, res) {
+        try {
+            const { id } = req.params;
+            const updated = await this.chatService.approveMessage(id);
+            if (!updated) return res.status(404).json({ message: 'Message not found' });
+            res.json(updated);
         } catch (err) {
             res.status(500).json({ message: err.message });
         }

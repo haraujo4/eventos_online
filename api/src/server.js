@@ -46,7 +46,8 @@ io.on('connection', (socket) => {
                 msg.userId || null,
                 msg.userName || 'Guest',
                 msg.userRole || 'viewer',
-                msg.content
+                msg.content,
+                msg.streamId
             );
         } catch (err) {
             console.error('Error handling chat message:', err);

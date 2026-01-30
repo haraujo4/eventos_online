@@ -212,13 +212,10 @@ const createTables = async () => {
       await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS temp_2fa_expires TIMESTAMP`);
 
 
-      await db.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_highlighted BOOLEAN DEFAULT false`);
-
-
-      await db.query(`ALTER TABLE auth_fields ADD COLUMN IF NOT EXISTS mask VARCHAR(100)`);
-      await db.query(`ALTER TABLE auth_fields ADD COLUMN IF NOT EXISTS placeholder VARCHAR(255)`);
-
-
+      await db.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS stream_id INTEGER REFERENCES streams(id) ON DELETE CASCADE`);
+      await db.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT true`);
+      await db.query(`ALTER TABLE event_settings ADD COLUMN IF NOT EXISTS chat_moderated BOOLEAN DEFAULT false`);
+      await db.query(`ALTER TABLE event_settings ADD COLUMN IF NOT EXISTS chat_global BOOLEAN DEFAULT true`);
 
     } catch (e) {
       console.log('Migration note: Event Config tables/columns might already exist or error ignored', e.message);

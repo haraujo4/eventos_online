@@ -104,6 +104,28 @@ class PollRepository {
         return result.rows[0];
     }
 
+    async getVotesReport() {
+        const query = `
+            SELECT 
+                pv.id,
+                pv.created_at,
+                u.name as user_name,
+                u.email as user_email,
+                p.question as poll_question,
+                po.option_text as choice_text,
+                s.language as stream_language,
+                s.title as stream_title
+            FROM poll_votes pv
+            JOIN users u ON pv.user_id = u.id
+            JOIN polls p ON pv.poll_id = p.id
+            JOIN poll_options po ON pv.option_id = po.id
+            LEFT JOIN streams s ON p.stream_id = s.id
+            ORDER BY pv.created_at DESC;
+        `;
+        const result = await db.query(query);
+        return result.rows;
+    }
+
     async deactivateAll(streamId) {
         const useStreamId = (streamId && streamId !== '' && streamId !== 'null') ? streamId : null;
         if (useStreamId) {

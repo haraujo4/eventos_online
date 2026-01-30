@@ -1,9 +1,11 @@
 class CreateMessageDTO {
-    constructor(userId, userName, userRole, content) {
+    constructor(userId, userName, userRole, content, streamId, isApproved) {
         this.userId = userId;
         this.userName = userName;
         this.userRole = userRole;
         this.content = content;
+        this.streamId = streamId;
+        this.isApproved = isApproved;
     }
 }
 
@@ -16,6 +18,9 @@ class MessageResponseDTO {
         this.content = message.content;
         this.createdAt = message.createdAt;
         this.isHighlighted = message.isHighlighted;
+        this.streamId = message.streamId;
+        this.isApproved = message.isApproved;
+        this.streamName = message.streamName;
     }
 }
 

@@ -14,13 +14,14 @@ import QuestionForm from '../components/QuestionForm';
 import CommentSection from '../components/CommentSection';
 import { toast } from 'react-toastify';
 
+import { useChatStore } from '../store/useChatStore';
+
 export default function Player() {
     const { user, logout } = useAuthStore();
     const { mediaSettings, eventSettings, connectSocket, disconnectSocket, fetchMediaSettings, fetchSettings } = useAdminStore();
     const { stats, userReaction, fetchReactionStats, toggleReaction } = useReactionStore();
+    const { setActiveStream, fetchMessages } = useChatStore();
     const navigate = useNavigate();
-
-
 
     const [localActiveStream, setLocalActiveStream] = useState(null);
     const [isPollOpen, setIsPollOpen] = useState(false);
@@ -48,8 +49,11 @@ export default function Player() {
     useEffect(() => {
         if (localActiveStream?.id) {
             fetchReactionStats(localActiveStream.id);
+            setActiveStream(localActiveStream.id);
+            fetchMessages(localActiveStream.id);
         }
-    }, [localActiveStream?.id, fetchReactionStats]);
+    }, [localActiveStream?.id, fetchReactionStats, setActiveStream, fetchMessages]);
+
 
 
     useEffect(() => {
