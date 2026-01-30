@@ -84,15 +84,15 @@ export default function CommentSection({ streamId }) {
     if (!eventSettings?.comments_enabled) return null;
 
     return (
-        <div className="mt-8 space-y-6">
-            <h3 className="text-xl font-bold flex items-center gap-2">
+        <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
+            <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
                 Comentários
-                <span className="text-sm font-normal text-gray-500">({comments.length})</span>
+                <span className="text-xs sm:text-sm font-normal text-gray-500">({comments.length})</span>
             </h3>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="flex gap-4">
-                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold flex-shrink-0">
+            <form onSubmit={handleSubmit} className="flex gap-3 sm:gap-4">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs sm:text-base font-bold flex-shrink-0">
                     {user?.name?.charAt(0) || 'U'}
                 </div>
                 <div className="flex-1 space-y-2">

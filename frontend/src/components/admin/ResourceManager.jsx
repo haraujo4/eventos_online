@@ -54,8 +54,23 @@ export function ResourceManager() {
 
     const renderPolls = () => (
         <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700">
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <div className="flex justify-between items-center bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                    Crie enquetes para interagir com o público em tempo real.
+                </p>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase text-gray-400">Recurso:</span>
+                    <button
+                        onClick={() => updateSettings({ polls_enabled: !eventSettings?.polls_enabled })}
+                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${eventSettings?.polls_enabled ? 'bg-green-500 text-white shadow-lg' : 'bg-gray-400 text-white'}`}
+                    >
+                        {eventSettings?.polls_enabled ? 'Enquetes Habilitadas' : 'Enquetes Desabilitadas'}
+                    </button>
+                </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
                     <Plus className="w-5 h-5 text-blue-500" />
                     Criar Nova Enquete
                 </h3>

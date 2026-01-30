@@ -3,8 +3,8 @@ const db = require('./src/config/db');
 
 async function check() {
     try {
-        console.log("Checking streams table columns...");
-        const res = await db.query("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'streams'");
+        console.log("Checking event_settings table columns...");
+        const res = await db.query("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'event_settings'");
         console.log("Columns found:");
         res.rows.forEach(r => console.log(`- ${r.column_name} (${r.data_type})`));
         process.exit(0);

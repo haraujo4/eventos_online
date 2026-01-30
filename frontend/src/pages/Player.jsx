@@ -2,17 +2,17 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { useAuthStore } from '../store/useAuthStore';
 import { useAdminStore } from '../store/useAdminStore';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { LogOut, ThumbsUp, ThumbsDown, BarChart2, HelpCircle, LayoutDashboard, MessageSquare, X } from 'lucide-react';
 import VideoPlayer from '../components/VideoPlayer';
 import Chat from '../components/Chat';
 import { useReactionStore } from '../store/useReactionStore';
 import { useEffect, useState } from 'react';
-import { BarChart2, HelpCircle } from 'lucide-react';
 import api from '../services/api';
 import PollModal from '../components/PollModal';
 import QuestionBanner from '../components/QuestionBanner';
 import QuestionForm from '../components/QuestionForm';
 import CommentSection from '../components/CommentSection';
+import { toast } from 'react-toastify';
 
 export default function Player() {
     const { user, logout } = useAuthStore();
@@ -26,6 +26,7 @@ export default function Player() {
     const [isPollOpen, setIsPollOpen] = useState(false);
     const [isQuestionOpen, setIsQuestionOpen] = useState(false);
     const [hasActivePoll, setHasActivePoll] = useState(false);
+    const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
 
     useEffect(() => {
         const checkPoll = async () => {
@@ -79,7 +80,23 @@ export default function Player() {
                 }
             });
 
-            socket.on('poll:new', () => setHasActivePoll(true));
+            socket.on('poll:new', (poll) => {
+                setHasActivePoll(true);
+                toast.info(`📊 Nova Enquete: ${poll.question}`, {
+                    position: "top-center",
+                    autoClose: 10000,
+                    icon: "🚀"
+                });
+            });
+
+            socket.on('poll:results', (data) => {
+                toast.success('📈 Os resultados da enquete foram liberados!', {
+                    position: "top-center",
+                    autoClose: 8000
+                });
+                setIsPollOpen(true); // Open modal to show results
+            });
+
             socket.on('poll:closed', () => setHasActivePoll(false));
         }
 
@@ -124,9 +141,11 @@ export default function Player() {
                     {(user?.role === 'admin' || user?.role === 'moderator') && (
                         <button
                             onClick={() => navigate('/admin')}
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium transition-colors"
+                            className="bg-blue-600 hover:bg-blue-700 text-white p-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                            title="Painel Admin"
                         >
-                            Painel Admin
+                            <LayoutDashboard className="w-5 h-5" />
+                            <span className="hidden sm:inline text-sm">Painel Admin</span>
                         </button>
                     )}
                     <div className="text-right hidden sm:block">
@@ -146,10 +165,10 @@ export default function Player() {
             {/* Main Content */}
             <main className="flex-1 flex flex-col lg:flex-row relative">
                 {/* Video Area */}
-                <div className="flex-1 min-w-0 flex flex-col">
+                <div className="flex-1 min-w-0 flex flex-col overflow-y-auto no-scrollbar bg-white dark:bg-gray-900 transition-colors">
                     {/* Video Player Container */}
                     <div className="w-full bg-black flex justify-center flex-shrink-0">
-                        <div className="w-full lg:max-w-[75%] aspect-video relative">
+                        <div className={`w-full ${eventSettings?.chat_enabled ? 'lg:max-w-[75%]' : 'lg:max-w-[65%]'} aspect-video relative`}>
                             <VideoPlayer
                                 streams={mediaSettings.streams}
                                 poster={mediaSettings.posterUrl}
@@ -160,93 +179,98 @@ export default function Player() {
                     </div>
 
                     {/* Stream Info & Controls */}
-                    <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-6 flex-shrink-0 transition-colors">
+                    <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4 sm:p-6 flex-shrink-0 transition-colors">
                         {/* Header & Language Select */}
-                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
+                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 mb-4">
                             <div className="flex-1">
-                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
                                     {localActiveStream?.title || "Transmissão ao Vivo do Evento"}
                                 </h2>
-                                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                                    <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${mediaSettings.isLive ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
+                                <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold uppercase tracking-wider ${mediaSettings.isLive ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
                                         {mediaSettings.isLive ? 'AO VIVO' : 'OFFLINE'}
                                     </span>
 
-                                    {(hasActivePoll || eventSettings?.polls_enabled) && (
+                                    {eventSettings?.polls_enabled && hasActivePoll && (
                                         <button
                                             onClick={() => setIsPollOpen(true)}
-                                            className={`flex items-center gap-1.5 px-3 py-0.5 rounded text-xs font-bold uppercase tracking-wider transition-all animate-pulse shadow-lg ${hasActivePoll ? 'bg-blue-600 text-white ring-2 ring-blue-400/50' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
+                                            className="flex items-center gap-1.5 px-3 py-0.5 bg-blue-600 text-white rounded text-[10px] sm:text-xs font-bold uppercase tracking-wider animate-pulse ring-2 ring-blue-400/50 shadow-lg"
                                         >
                                             <BarChart2 className="w-3 h-3" />
                                             Enquete
                                         </button>
                                     )}
-                                    <span>•</span>
-                                    <span>{new Date().toLocaleDateString()}</span>
+
+                                    {eventSettings?.questions_enabled && (
+                                        <button
+                                            onClick={() => setIsQuestionOpen(true)}
+                                            className="flex items-center gap-1.5 px-3 py-0.5 bg-purple-600 text-white rounded text-[10px] sm:text-xs font-bold uppercase tracking-wider hover:bg-purple-700 transition-colors shadow-lg"
+                                        >
+                                            <HelpCircle className="w-3 h-3" />
+                                            Perguntar
+                                        </button>
+                                    )}
+
+                                    <span className="text-gray-400">•</span>
+                                    <span className="text-[10px] sm:text-xs">{new Date().toLocaleDateString()}</span>
                                 </div>
                             </div>
 
-                            <div className="flex flex-col sm:flex-row items-center gap-4">
-                                {/* Reaction Buttons */}
-                                <div className={`flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg ${!localActiveStream?.id ? 'opacity-50 pointer-events-none' : ''}`}>
-                                    <button
-                                        onClick={() => toggleReaction(localActiveStream?.id, 'like')}
-                                        disabled={!localActiveStream?.id}
-                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-l-md transition-colors ${userReaction === 'like'
-                                            ? 'text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-700 shadow-sm'
-                                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                                            }`}
-                                        title="Gostei"
-                                    >
-                                        <ThumbsUp className={`w-4 h-4 ${userReaction === 'like' ? 'fill-current' : ''}`} />
-                                        <span className="text-sm font-medium">{stats.likes}</span>
-                                    </button>
-                                    <div className="w-px h-5 bg-gray-300 dark:bg-gray-700 mx-1"></div>
-                                    <button
-                                        onClick={() => toggleReaction(localActiveStream?.id, 'dislike')}
-                                        disabled={!localActiveStream?.id}
-                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-r-md transition-colors ${userReaction === 'dislike'
-                                            ? 'text-red-600 dark:text-red-400 bg-white dark:bg-gray-700 shadow-sm'
-                                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                                            }`}
-                                        title="Não gostei"
-                                    >
-                                        <ThumbsDown className={`w-4 h-4 ${userReaction === 'dislike' ? 'fill-current' : ''}`} />
-                                        <span className="text-sm font-medium">{stats.dislikes}</span>
-                                    </button>
-                                </div>
-
-                                {/* Language Pills */}
-                                <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-                                    {mediaSettings.streams.map(stream => (
+                            <div className="flex flex-col gap-4 mt-2">
+                                {/* Actions Bar: Reactions & Languages */}
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                                    {/* Reaction Buttons */}
+                                    <div className={`flex items-center h-10 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl ${!localActiveStream?.id ? 'opacity-50 pointer-events-none' : ''}`}>
                                         <button
-                                            key={stream.id}
-                                            onClick={() => document.dispatchEvent(new CustomEvent('change-language', { detail: stream.id }))}
-                                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${(localActiveStream?.id === stream.id)
-                                                ? 'bg-white dark:bg-blue-600 text-blue-700 dark:text-white shadow-sm'
-                                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700'
+                                            onClick={() => toggleReaction(localActiveStream?.id, 'like')}
+                                            disabled={!localActiveStream?.id}
+                                            className={`flex items-center gap-2 px-3 h-full rounded-lg transition-all ${userReaction === 'like'
+                                                ? 'text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-700 shadow-sm'
+                                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                                                 }`}
+                                            title="Gostei"
                                         >
-                                            {stream.language}
+                                            <ThumbsUp className={`w-4 h-4 ${userReaction === 'like' ? 'fill-current' : ''}`} />
+                                            <span className="text-xs sm:text-sm font-bold">{stats.likes}</span>
                                         </button>
-                                    ))}
+                                        <div className="w-px h-4 bg-gray-300 dark:bg-gray-700 mx-0.5"></div>
+                                        <button
+                                            onClick={() => toggleReaction(localActiveStream?.id, 'dislike')}
+                                            disabled={!localActiveStream?.id}
+                                            className={`flex items-center gap-2 px-3 h-full rounded-lg transition-all ${userReaction === 'dislike'
+                                                ? 'text-red-600 dark:text-red-400 bg-white dark:bg-gray-700 shadow-sm'
+                                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                                }`}
+                                            title="Não gostei"
+                                        >
+                                            <ThumbsDown className={`w-4 h-4 ${userReaction === 'dislike' ? 'fill-current' : ''}`} />
+                                            <span className="text-xs sm:text-sm font-bold">{stats.dislikes}</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Language Pills */}
+                                    <div className="flex items-center h-10 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                                        {mediaSettings.streams.map(stream => (
+                                            <button
+                                                key={stream.id}
+                                                onClick={() => document.dispatchEvent(new CustomEvent('change-language', { detail: stream.id }))}
+                                                className={`px-4 h-full rounded-lg text-xs sm:text-sm font-bold transition-all ${(localActiveStream?.id === stream.id)
+                                                    ? 'bg-white dark:bg-blue-600 text-blue-700 dark:text-white shadow-sm'
+                                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700'
+                                                    }`}
+                                            >
+                                                {stream.language}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
 
-                                {eventSettings?.questions_enabled && (
-                                    <button
-                                        onClick={() => setIsQuestionOpen(true)}
-                                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-bold shadow-md transition-all active:scale-95"
-                                    >
-                                        <HelpCircle className="w-4 h-4" />
-                                        Perguntar
-                                    </button>
-                                )}
                             </div>
                         </div>
 
                         {/* Description */}
-                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-800">
-                            <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 sm:p-4 border border-gray-100 dark:border-gray-800">
+                            <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
                                 {localActiveStream?.description || "Nenhuma descrição disponível para esta transmissão."}
                             </p>
                         </div>
@@ -260,9 +284,43 @@ export default function Player() {
 
                 {/* Sidebar (Chat) */}
                 {eventSettings?.chat_enabled && (
-                    <aside className="w-full lg:w-96 lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] bg-white dark:bg-gray-900 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-800 flex-shrink-0 transition-colors z-40">
-                        <Chat />
-                    </aside>
+                    <>
+                        {/* Mobile Overlay */}
+                        {isMobileChatOpen && (
+                            <div
+                                className="lg:hidden fixed inset-0 bg-black/50 z-[90] backdrop-blur-sm transition-opacity"
+                                onClick={() => setIsMobileChatOpen(false)}
+                            />
+                        )}
+
+                        {/* Mobile Floating Button */}
+                        <button
+                            onClick={() => setIsMobileChatOpen(true)}
+                            className="lg:hidden fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center z-50 active:scale-90 transition-transform"
+                        >
+                            <MessageSquare className="w-6 h-6" />
+                        </button>
+
+                        {/* Chat Container */}
+                        <aside className={`
+                            w-full lg:w-96 flex-shrink-0 transition-all duration-300 z-[100] lg:z-40
+                            fixed inset-0 lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] overflow-y-auto no-scrollbar
+                            ${isMobileChatOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+                        `}>
+                            <div className="h-full relative bg-white dark:bg-gray-900 flex flex-col">
+                                {/* Mobile Header Close */}
+                                <div className="lg:hidden p-4 border-b dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-900">
+                                    <h3 className="font-bold">Chat</h3>
+                                    <button onClick={() => setIsMobileChatOpen(false)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <div className="flex-1 overflow-hidden">
+                                    <Chat />
+                                </div>
+                            </div>
+                        </aside>
+                    </>
                 )}
             </main>
 

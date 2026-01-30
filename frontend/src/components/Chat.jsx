@@ -77,7 +77,7 @@ export default function Chat() {
                 </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
                 {messages.map((msg) => {
                     const isMe = msg.userId === user?.id;
                     const isModerator = ['admin', 'moderator'].includes(msg.userRole);

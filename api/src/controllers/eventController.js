@@ -27,16 +27,27 @@ const eventController = {
 
     updateSettings: async (req, res) => {
         try {
-            const { event_name, auth_mode, two_factor_enabled, smtp_config, allow_registration, chat_enabled } = req.body;
+            const {
+                event_name, auth_mode, two_factor_enabled, smtp_config,
+                allow_registration, chat_enabled, polls_enabled,
+                comments_enabled, questions_enabled
+            } = req.body;
 
             const query = `
         UPDATE event_settings 
-        SET event_name = $1, auth_mode = $2, two_factor_enabled = $3, smtp_config = $4, allow_registration = $5, chat_enabled = $6, updated_at = NOW()
+        SET event_name = $1, auth_mode = $2, two_factor_enabled = $3, 
+            smtp_config = $4, allow_registration = $5, chat_enabled = $6,
+            polls_enabled = $7, comments_enabled = $8, questions_enabled = $9,
+            updated_at = NOW()
         WHERE id = (SELECT id FROM event_settings LIMIT 1)
         RETURNING *
       `;
 
-            const result = await db.query(query, [event_name, auth_mode, two_factor_enabled, smtp_config, allow_registration, chat_enabled]);
+            const result = await db.query(query, [
+                event_name, auth_mode, two_factor_enabled, smtp_config,
+                allow_registration, chat_enabled, polls_enabled,
+                comments_enabled, questions_enabled
+            ]);
             res.json(result.rows[0]);
         } catch (err) {
             console.error(err);

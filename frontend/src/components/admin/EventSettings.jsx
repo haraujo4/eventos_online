@@ -13,6 +13,9 @@ export function EventSettings() {
         two_factor_enabled: false,
         allow_registration: true,
         chat_enabled: true,
+        polls_enabled: true,
+        comments_enabled: true,
+        questions_enabled: true,
         smtp_config: { host: '', port: 587, user: '', pass: '', secure: false }
     });
 
@@ -31,6 +34,9 @@ export function EventSettings() {
                 two_factor_enabled: eventSettings.two_factor_enabled || false,
                 allow_registration: eventSettings.allow_registration ?? true,
                 chat_enabled: eventSettings.chat_enabled ?? true,
+                polls_enabled: eventSettings.polls_enabled ?? true,
+                comments_enabled: eventSettings.comments_enabled ?? true,
+                questions_enabled: eventSettings.questions_enabled ?? true,
                 smtp_config: { ...prev.smtp_config, ...(eventSettings.smtp_config || {}) }
             }));
         }
@@ -297,16 +303,51 @@ export function EventSettings() {
                                 <Settings className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                                 Interação
                             </h4>
-                            <label className="flex items-center gap-3 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    name="chat_enabled"
-                                    checked={settingsForm.chat_enabled}
-                                    onChange={handleSettingsChange}
-                                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                                />
-                                <span className="text-sm text-gray-700 dark:text-gray-300">Habilitar Chat ao Vivo</span>
-                            </label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        name="chat_enabled"
+                                        checked={settingsForm.chat_enabled}
+                                        onChange={handleSettingsChange}
+                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                                    />
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">Chat ao Vivo</span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        name="polls_enabled"
+                                        checked={settingsForm.polls_enabled}
+                                        onChange={handleSettingsChange}
+                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                                    />
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">Habilitar Enquetes</span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        name="comments_enabled"
+                                        checked={settingsForm.comments_enabled}
+                                        onChange={handleSettingsChange}
+                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                                    />
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">Habilitar Comentários</span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        name="questions_enabled"
+                                        checked={settingsForm.questions_enabled}
+                                        onChange={handleSettingsChange}
+                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                                    />
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">Habilitar Perguntas</span>
+                                </label>
+                            </div>
                         </div>
 
                         <div className="border-t border-gray-100 dark:border-gray-700 pt-6">
