@@ -19,12 +19,14 @@ const reactionController = require('./controllers/reactionController');
 const pollController = require('./controllers/pollController');
 const commentController = require('./controllers/commentController');
 const questionController = require('./controllers/questionController');
+const eventController = require('./controllers/eventController');
 
 container.init(io);
 reactionController.setSocket(io);
 pollController.setSocket(io);
 commentController.setSocket(io);
 questionController.setSocket(io);
+eventController.setSocket(io);
 
 
 

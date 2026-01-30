@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAdminStore } from '../../store/useAdminStore';
 import { Save, Upload, Trash2, Plus, Shield, Settings, Image } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 export function EventSettings() {
     const { eventSettings, authFields, fetchSettings, updateSettings, updateAuthFields, uploadLogo, uploadBackground, removeBackground } = useAdminStore();
@@ -69,9 +70,9 @@ export function EventSettings() {
         setLoading(true);
         try {
             await updateSettings(settingsForm);
-            alert('Configurações salvas com sucesso!');
+            toast.success('Configurações salvas com sucesso!');
         } catch (error) {
-            alert('Falha ao salvar configurações');
+            toast.error('Falha ao salvar configurações');
         } finally {
             setLoading(false);
         }
@@ -83,9 +84,9 @@ export function EventSettings() {
 
         try {
             await uploadLogo(file);
-            alert('Logo enviada com sucesso!');
+            toast.success('Logo enviada com sucesso!');
         } catch (error) {
-            alert('Falha ao enviar logo');
+            toast.error('Falha ao enviar logo');
         }
     };
 
@@ -95,9 +96,9 @@ export function EventSettings() {
 
         try {
             await uploadBackground(file);
-            alert('Papel de parede enviado com sucesso!');
+            toast.success('Papel de parede enviado com sucesso!');
         } catch (error) {
-            alert('Falha ao enviar papel de parede');
+            toast.error('Falha ao enviar papel de parede');
         }
     };
 
@@ -105,9 +106,9 @@ export function EventSettings() {
         if (!confirm('Deseja realmente remover o papel de parede?')) return;
         try {
             await removeBackground();
-            alert('Papel de parede removido!');
+            toast.success('Papel de parede removido!');
         } catch (error) {
-            alert('Falha ao remover papel de parede');
+            toast.error('Falha ao remover papel de parede');
         }
     };
 
@@ -144,9 +145,9 @@ export function EventSettings() {
         setLoading(true);
         try {
             await updateAuthFields(fieldsForm);
-            alert('Campos atualizados com sucesso!');
+            toast.success('Campos atualizados com sucesso!');
         } catch (error) {
-            alert('Falha ao atualizar campos');
+            toast.error('Falha ao atualizar campos');
         } finally {
             setLoading(false);
         }

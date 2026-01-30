@@ -63,6 +63,7 @@ export function MediaConfig() {
                     posterUrl: streamPoster,
                     type: inputType
                 }, videoFile, posterFile);
+                toast.success('Stream atualizada com sucesso!');
             } else {
                 await addStream({
                     language: streamLang,
@@ -72,12 +73,13 @@ export function MediaConfig() {
                     posterUrl: streamPoster,
                     type: inputType
                 }, videoFile, posterFile);
+                toast.success('Stream adicionada com sucesso!');
             }
             resetForm();
         } catch (error) {
             console.error("Submit Stream Error:", error);
             const msg = error.response?.data?.message || error.message;
-            alert(`Falha ao salvar stream: ${msg}`);
+            toast.error(`Falha ao salvar stream: ${msg}`);
         }
     };
 

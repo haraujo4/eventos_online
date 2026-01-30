@@ -111,12 +111,18 @@ const createTables = async () => {
       await db.query(`
             CREATE TABLE IF NOT EXISTS polls (
                 id SERIAL PRIMARY KEY,
+                stream_id INTEGER REFERENCES streams(id) ON DELETE CASCADE,
                 question TEXT NOT NULL,
                 is_active BOOLEAN DEFAULT false,
                 show_results BOOLEAN DEFAULT false,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
+      try {
+        await db.query(`ALTER TABLE polls ADD COLUMN IF NOT EXISTS stream_id INTEGER REFERENCES streams(id) ON DELETE CASCADE`);
+      } catch (e) {
+        console.log('Migration note: stream_id column in polls might already exist', e.message);
+      }
       await db.query(`
             CREATE TABLE IF NOT EXISTS poll_options (
                 id SERIAL PRIMARY KEY,

@@ -1,12 +1,12 @@
 const db = require('../config/db');
 
 class PollRepository {
-    async create(question, options) {
+    async create(question, options, streamId) {
         await db.query('BEGIN');
         try {
             const pollResult = await db.query(
-                'INSERT INTO polls (question) VALUES ($1) RETURNING *',
-                [question]
+                'INSERT INTO polls (question, stream_id) VALUES ($1, $2) RETURNING *',
+                [question, streamId]
             );
             const poll = pollResult.rows[0];
 
@@ -25,22 +25,29 @@ class PollRepository {
         }
     }
 
-    async getActive() {
+    async getActive(streamId) {
+        const useStreamId = (streamId && streamId !== '' && streamId !== 'null') ? streamId : null;
         const query = `
             SELECT p.*, 
                 json_agg(json_build_object('id', o.id, 'text', o.option_text)) as options
             FROM polls p
             LEFT JOIN poll_options o ON p.id = o.poll_id
-            WHERE p.is_active = true
+            WHERE p.is_active = true AND ${useStreamId ? '(p.stream_id = $1 OR p.stream_id IS NULL)' : 'p.stream_id IS NULL'}
             GROUP BY p.id
+            ORDER BY p.stream_id ASC NULLS LAST, p.created_at DESC
             LIMIT 1;
         `;
-        const result = await db.query(query);
+        const result = await db.query(query, useStreamId ? [useStreamId] : []);
         return result.rows[0];
     }
 
     async getAll() {
-        const query = 'SELECT * FROM polls ORDER BY created_at DESC';
+        const query = `
+            SELECT p.*, s.language as stream_language 
+            FROM polls p 
+            LEFT JOIN streams s ON p.stream_id = s.id 
+            ORDER BY p.created_at DESC
+        `;
         const result = await db.query(query);
         return result.rows;
     }
@@ -97,8 +104,15 @@ class PollRepository {
         return result.rows[0];
     }
 
-    async deactivateAll() {
-        await db.query('UPDATE polls SET is_active = false');
+    async deactivateAll(streamId) {
+        const useStreamId = (streamId && streamId !== '' && streamId !== 'null') ? streamId : null;
+        if (useStreamId) {
+            // Deactivate this stream's polls AND global polls to avoid clashing
+            await db.query('UPDATE polls SET is_active = false WHERE stream_id = $1 OR stream_id IS NULL', [useStreamId]);
+        } else {
+            // Deactivate EVERYTHING if activating a global poll
+            await db.query('UPDATE polls SET is_active = false');
+        }
     }
 
     async delete(id) {

@@ -11,8 +11,11 @@ import {
     Eye,
     Play,
     Pause,
-    MessageCircle
+    MessageCircle,
+    Globe,
+    LayoutDashboard
 } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 export function ResourceManager() {
     const [activeTab, setActiveTab] = useState('polls');
@@ -20,28 +23,47 @@ export function ResourceManager() {
         polls, fetchPolls, createPoll, updatePollStatus, deletePoll,
         pendingComments, fetchPendingComments, approveComment, deleteComment,
         questions, fetchQuestions, displayQuestion, deleteQuestion,
-        eventSettings, updateSettings
+        eventSettings, updateSettings, mediaSettings, fetchMediaSettings,
+        socket
     } = useAdminStore();
 
     useEffect(() => {
-        if (activeTab === 'polls') fetchPolls();
+        if (activeTab === 'polls') {
+            fetchPolls();
+            fetchMediaSettings();
+        }
         if (activeTab === 'comments') fetchPendingComments();
         if (activeTab === 'questions') fetchQuestions();
-    }, [activeTab]);
 
-    const [newPoll, setNewPoll] = useState({ question: '', options: ['', ''] });
+        if (socket) {
+            socket.on('question:new', fetchQuestions);
+            socket.on('comment:pending', fetchPendingComments);
+            socket.on('poll:new', fetchPolls);
+        }
+
+        return () => {
+            if (socket) {
+                socket.off('question:new', fetchQuestions);
+                socket.off('comment:pending', fetchPendingComments);
+                socket.off('poll:new', fetchPolls);
+            }
+        };
+    }, [activeTab, socket]);
+
+    const [newPoll, setNewPoll] = useState({ question: '', options: ['', ''], streamId: '' });
 
     const handleCreatePoll = async (e) => {
         e.preventDefault();
         try {
             await createPoll({
                 question: newPoll.question,
-                options: newPoll.options.filter(o => o.trim() !== '')
+                options: newPoll.options.filter(o => o.trim() !== ''),
+                streamId: newPoll.streamId || null
             });
-            setNewPoll({ question: '', options: ['', ''] });
-            alert('Enquete criada com sucesso!');
+            setNewPoll({ question: '', options: ['', ''], streamId: '' });
+            toast.success('Enquete criada com sucesso!');
         } catch (err) {
-            alert('Erro ao criar enquete');
+            toast.error('Erro ao criar enquete');
         }
     };
 
@@ -75,15 +97,35 @@ export function ResourceManager() {
                     Criar Nova Enquete
                 </h3>
                 <form onSubmit={handleCreatePoll} className="space-y-4">
-                    <input
-                        type="text"
-                        placeholder="Pergunta da enquete..."
-                        value={newPoll.question}
-                        onChange={e => setNewPoll({ ...newPoll, question: e.target.value })}
-                        className="w-full px-4 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-700"
-                        required
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Pergunta</label>
+                            <input
+                                type="text"
+                                placeholder="Pergunta da enquete..."
+                                value={newPoll.question}
+                                onChange={e => setNewPoll({ ...newPoll, question: e.target.value })}
+                                className="w-full px-4 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-700"
+                                required
+                            />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Idioma / Stream</label>
+                            <select
+                                value={newPoll.streamId}
+                                onChange={e => setNewPoll({ ...newPoll, streamId: e.target.value })}
+                                className="w-full px-4 py-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                            >
+                                <option value="">Global</option>
+                                {mediaSettings.streams.map(s => (
+                                    <option key={s.id} value={s.id}>{s.language}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
                     <div className="space-y-2">
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Alternativas</label>
                         {newPoll.options.map((opt, i) => (
                             <input
                                 key={i}
@@ -100,7 +142,7 @@ export function ResourceManager() {
                         <button type="button" onClick={addOption} className="text-sm text-blue-500 hover:underline">
                             + Adicionar Alternativa
                         </button>
-                        <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-bold">
                             Criar Enquete
                         </button>
                     </div>
@@ -111,9 +153,14 @@ export function ResourceManager() {
                 <h3 className="font-bold text-gray-700 dark:text-gray-300">Enquetes Anteriores</h3>
                 {polls.map(poll => (
                     <div key={poll.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg border dark:border-gray-700 flex items-center justify-between">
-                        <div>
-                            <p className="font-medium">{poll.question}</p>
-                            <p className="text-xs text-gray-500">{new Date(poll.created_at).toLocaleString()}</p>
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                                    {poll.stream_language || 'Global'}
+                                </span>
+                                <p className="font-medium text-gray-900 dark:text-white">{poll.question}</p>
+                            </div>
+                            <p className="text-[10px] text-gray-500">{new Date(poll.created_at).toLocaleString()}</p>
                         </div>
                         <div className="flex items-center gap-2">
                             <button
@@ -226,7 +273,12 @@ export function ResourceManager() {
                             )}
                             <div className="flex justify-between items-start mb-3">
                                 <div>
-                                    <p className="font-bold text-gray-800 dark:text-white">{q.user_name}</p>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                                            {q.stream_language || 'Global'}
+                                        </span>
+                                        <p className="font-bold text-gray-800 dark:text-white">{q.user_name}</p>
+                                    </div>
                                     <p className="text-xs text-gray-400">{q.user_email}</p>
                                 </div>
                                 <span className="text-[10px] text-gray-400">{new Date(q.created_at).toLocaleTimeString()}</span>
@@ -237,12 +289,21 @@ export function ResourceManager() {
                             <div className="flex items-center justify-end gap-2">
                                 <button
                                     onClick={() => displayQuestion(q.id)}
-                                    className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors"
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-700 transition-colors"
+                                    title="Exibir apenas para o idioma desta pergunta"
                                 >
                                     <Eye className="w-3 h-3" />
-                                    EXIBIR NA TELA
+                                    EXIBIR LOCAL
                                 </button>
-                                <button onClick={() => deleteQuestion(q.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg">
+                                <button
+                                    onClick={() => displayQuestion(q.id, true)}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-[10px] font-bold hover:bg-purple-700 transition-colors"
+                                    title="Exibir para TODOS os idiomas"
+                                >
+                                    <Globe className="w-3 h-3" />
+                                    EXIBIR GLOBAL
+                                </button>
+                                <button onClick={() => deleteQuestion(q.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg ml-2">
                                     <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>

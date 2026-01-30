@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAdminStore } from '../store/useAdminStore';
 import { useAuthStore } from '../store/useAuthStore';
 import api from '../services/api';
-import { Send, Smile, Heart, Laugh, Frown, Angry } from 'lucide-react';
+import { Send, Smile, Heart, Laugh, Frown, Angry, CheckCircle, X } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const EMOJI_MAP = {
     happy: { icon: Smile, label: 'Feliz', color: 'text-yellow-500' },
@@ -18,6 +19,7 @@ export default function CommentSection({ streamId }) {
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     const fetchComments = async () => {
         if (!streamId) return;
@@ -65,9 +67,9 @@ export default function CommentSection({ streamId }) {
         try {
             await api.post('/comments', { streamId, content: newComment });
             setNewComment('');
-            alert('Comentário enviado para moderação!');
+            setShowSuccessModal(true);
         } catch (err) {
-            alert('Erro ao enviar comentário');
+            toast.error('Erro ao enviar comentário');
         } finally {
             setIsSubmitting(false);
         }
@@ -149,6 +151,38 @@ export default function CommentSection({ streamId }) {
                     </div>
                 ))}
             </div>
+
+            {/* Success Modal */}
+            {showSuccessModal && (
+                <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-gray-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="px-6 py-4 border-b dark:border-gray-700 flex justify-between items-center bg-blue-600">
+                            <h3 className="text-white font-bold flex items-center gap-2">
+                                <CheckCircle className="w-5 h-5" />
+                                Comentário Enviado
+                            </h3>
+                            <button onClick={() => setShowSuccessModal(false)} className="text-white/80 hover:text-white">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 text-center">
+                            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <CheckCircle className="w-10 h-10" />
+                            </div>
+                            <h4 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">Recebemos seu comentário!</h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                                Seu comentário foi enviado para moderação e em breve estará disponível para todos.
+                            </p>
+                            <button
+                                onClick={() => setShowSuccessModal(false)}
+                                className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors"
+                            >
+                                Entendi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

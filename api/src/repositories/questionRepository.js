@@ -13,9 +13,10 @@ class QuestionRepository {
 
     async getAll() {
         const query = `
-            SELECT q.*, u.name as user_name, u.email as user_email
+            SELECT q.*, u.name as user_name, u.email as user_email, s.language as stream_language
             FROM questions q
             JOIN users u ON q.user_id = u.id
+            LEFT JOIN streams s ON q.stream_id = s.id
             ORDER BY q.created_at DESC;
         `;
         const result = await db.query(query);

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import api from '../services/api';
 import { io } from 'socket.io-client';
+import { toast } from 'react-toastify';
 
 export const useAdminStore = create((set, get) => ({
     mediaSettings: {
@@ -64,6 +65,12 @@ export const useAdminStore = create((set, get) => ({
 
         socket.on('stats:viewers', (data) => {
             set({ currentViewers: data.count });
+        });
+
+        socket.on('settings:update', (data) => {
+            set(state => ({
+                eventSettings: { ...state.eventSettings, ...data }
+            }));
         });
 
         set({ socket });
@@ -512,6 +519,15 @@ export const useAdminStore = create((set, get) => ({
         try {
             await api.put(`/polls/${pollId}/status`, status);
             get().fetchPolls();
+
+            // Priority ordering for toast notifications
+            if (status.show_results) {
+                toast.success('Resultados da enquete liberados para os espectadores!');
+            } else if (status.is_active === true) {
+                toast.success('Enquete ativada com sucesso!');
+            } else if (status.is_active === false) {
+                toast.info('Enquete encerrada.');
+            }
         } catch (err) {
             console.error('Error updating poll status:', err);
             throw err;
@@ -521,6 +537,7 @@ export const useAdminStore = create((set, get) => ({
         try {
             await api.delete(`/polls/${pollId}`);
             get().fetchPolls();
+            toast.success('Enquete excluída.');
         } catch (err) {
             console.error('Error deleting poll:', err);
             throw err;
@@ -542,6 +559,7 @@ export const useAdminStore = create((set, get) => ({
         try {
             await api.put(`/comments/${commentId}/approve`);
             get().fetchPendingComments();
+            toast.success('Comentário aprovado!');
         } catch (err) {
             console.error('Error approving comment:', err);
             throw err;
@@ -551,6 +569,7 @@ export const useAdminStore = create((set, get) => ({
         try {
             await api.delete(`/comments/${commentId}`);
             get().fetchPendingComments();
+            toast.warning('Comentário removido.');
         } catch (err) {
             console.error('Error deleting comment:', err);
             throw err;
@@ -567,10 +586,11 @@ export const useAdminStore = create((set, get) => ({
             console.error('Error fetching questions:', err);
         }
     },
-    displayQuestion: async (questionId) => {
+    displayQuestion: async (questionId, isGlobal = false) => {
         try {
-            await api.put(`/questions/${questionId}/display`);
+            await api.put(`/questions/${questionId}/display`, { isGlobal });
             get().fetchQuestions();
+            toast.success(isGlobal ? 'Pergunta exibida para TODOS!' : 'Pergunta exibida na tela local.');
         } catch (err) {
             console.error('Error displaying question:', err);
             throw err;

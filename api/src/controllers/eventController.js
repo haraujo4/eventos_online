@@ -1,18 +1,26 @@
 const db = require('../config/db');
 const minioService = require('../services/minioService');
 
-const eventController = {
+class EventController {
+    constructor() {
+        this.io = null;
+        this.getSettings = this.getSettings.bind(this);
+        this.updateSettings = this.updateSettings.bind(this);
+        this.updateAuthFields = this.updateAuthFields.bind(this);
+        this.uploadLogo = this.uploadLogo.bind(this);
+        this.uploadBackground = this.uploadBackground.bind(this);
+        this.removeBackground = this.removeBackground.bind(this);
+    }
 
-    getSettings: async (req, res) => {
+    setSocket(io) {
+        this.io = io;
+    }
+
+    async getSettings(req, res) {
         try {
             const settingsResult = await db.query('SELECT * FROM event_settings LIMIT 1');
             const settings = settingsResult.rows[0] || {};
-
             const authFieldsResult = await db.query('SELECT * FROM auth_fields ORDER BY display_order ASC');
-
-
-
-
 
             res.json({
                 settings,
@@ -22,49 +30,52 @@ const eventController = {
             console.error(err);
             res.status(500).json({ message: 'Error fetching settings' });
         }
-    },
+    }
 
-
-    updateSettings: async (req, res) => {
+    async updateSettings(req, res) {
         try {
-            const {
-                event_name, auth_mode, two_factor_enabled, smtp_config,
-                allow_registration, chat_enabled, polls_enabled,
-                comments_enabled, questions_enabled
-            } = req.body;
+            const updates = req.body;
+
+            // Get current settings to merge
+            const currentRes = await db.query('SELECT * FROM event_settings LIMIT 1');
+            const current = currentRes.rows[0] || {};
+
+            const merged = { ...current, ...updates };
 
             const query = `
-        UPDATE event_settings 
-        SET event_name = $1, auth_mode = $2, two_factor_enabled = $3, 
-            smtp_config = $4, allow_registration = $5, chat_enabled = $6,
-            polls_enabled = $7, comments_enabled = $8, questions_enabled = $9,
-            updated_at = NOW()
-        WHERE id = (SELECT id FROM event_settings LIMIT 1)
-        RETURNING *
-      `;
+                UPDATE event_settings 
+                SET event_name = $1, auth_mode = $2, two_factor_enabled = $3, 
+                    smtp_config = $4, allow_registration = $5, chat_enabled = $6,
+                    polls_enabled = $7, comments_enabled = $8, questions_enabled = $9,
+                    updated_at = NOW()
+                WHERE id = $10
+                RETURNING *
+            `;
 
             const result = await db.query(query, [
-                event_name, auth_mode, two_factor_enabled, smtp_config,
-                allow_registration, chat_enabled, polls_enabled,
-                comments_enabled, questions_enabled
+                merged.event_name, merged.auth_mode, merged.two_factor_enabled,
+                merged.smtp_config, merged.allow_registration, merged.chat_enabled,
+                merged.polls_enabled, merged.comments_enabled, merged.questions_enabled,
+                merged.id
             ]);
-            res.json(result.rows[0]);
+
+            const updatedSettings = result.rows[0];
+
+            if (this.io) {
+                console.log('Broadcasting settings update:', updatedSettings);
+                this.io.emit('settings:update', updatedSettings);
+            }
+
+            res.json(updatedSettings);
         } catch (err) {
-            console.error(err);
+            console.error('Error updating settings:', err);
             res.status(500).json({ message: 'Error updating settings' });
         }
-    },
+    }
 
-
-    updateAuthFields: async (req, res) => {
+    async updateAuthFields(req, res) {
         try {
             const { fields } = req.body;
-
-
-
-
-
-
             await db.query('BEGIN');
             await db.query('DELETE FROM auth_fields');
 
@@ -84,51 +95,59 @@ const eventController = {
             console.error(err);
             res.status(500).json({ message: 'Error updating auth fields' });
         }
-    },
+    }
 
-    uploadLogo: async (req, res) => {
+    async uploadLogo(req, res) {
         try {
-            if (!req.file) {
-                return res.status(400).json({ message: 'No file uploaded' });
-            }
+            if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
             const filename = `logo-${Date.now()}-${req.file.originalname}`;
             const logoUrl = await minioService.uploadImage(filename, req.file.buffer, req.file.mimetype);
 
-            await db.query('UPDATE event_settings SET logo_url = $1', [logoUrl]);
+            const result = await db.query('UPDATE event_settings SET logo_url = $1 RETURNING *', [logoUrl]);
+            const updated = result.rows[0];
+
+            if (this.io) this.io.emit('settings:update', updated);
+
             res.json({ logoUrl });
         } catch (err) {
             console.error(err);
             res.status(500).json({ message: 'Error uploading logo' });
         }
-    },
+    }
 
-    uploadBackground: async (req, res) => {
+    async uploadBackground(req, res) {
         try {
-            if (!req.file) {
-                return res.status(400).json({ message: 'No file uploaded' });
-            }
+            if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
             const filename = `bg-${Date.now()}-${req.file.originalname}`;
             const backgroundUrl = await minioService.uploadImage(filename, req.file.buffer, req.file.mimetype);
 
-            await db.query('UPDATE event_settings SET background_url = $1', [backgroundUrl]);
+            const result = await db.query('UPDATE event_settings SET background_url = $1 RETURNING *', [backgroundUrl]);
+            const updated = result.rows[0];
+
+            if (this.io) this.io.emit('settings:update', updated);
+
             res.json({ backgroundUrl });
         } catch (err) {
             console.error(err);
             res.status(500).json({ message: 'Error uploading background' });
         }
-    },
+    }
 
-    removeBackground: async (req, res) => {
+    async removeBackground(req, res) {
         try {
-            await db.query('UPDATE event_settings SET background_url = NULL');
+            const result = await db.query('UPDATE event_settings SET background_url = NULL RETURNING *');
+            const updated = result.rows[0];
+
+            if (this.io) this.io.emit('settings:update', updated);
+
             res.json({ message: 'Background removed' });
         } catch (err) {
             console.error(err);
             res.status(500).json({ message: 'Error removing background' });
         }
     }
-};
+}
 
-module.exports = eventController;
+module.exports = new EventController();

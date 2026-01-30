@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import api from '../services/api';
 import { BarChart2, Check, X } from 'lucide-react';
 
-export default function PollModal({ isOpen, onClose }) {
+export default function PollModal({ isOpen, onClose, streamId }) {
     const { socket } = useAdminStore();
     const { user } = useAuthStore();
     const [poll, setPoll] = useState(null);
@@ -13,8 +13,9 @@ export default function PollModal({ isOpen, onClose }) {
     const [results, setResults] = useState(null);
 
     const fetchActivePoll = async () => {
+        if (!streamId) return;
         try {
-            const response = await api.get('/polls/active');
+            const response = await api.get(`/polls/active?streamId=${streamId}`);
             if (response.data) {
                 setPoll(response.data);
                 setVotedOption(response.data.userVote?.option_id);
@@ -31,19 +32,32 @@ export default function PollModal({ isOpen, onClose }) {
         if (isOpen) fetchActivePoll();
 
         if (socket) {
+            const normalize = (val) => (val === null || val === undefined || val === 'null' || val === '') ? null : Number(val);
+
             socket.on('poll:new', (newPoll) => {
-                setPoll(newPoll);
-                setVotedOption(null);
-                setResults(null);
+                const incomingStreamId = normalize(newPoll.stream_id);
+                const currentStreamId = normalize(streamId);
+
+                if (incomingStreamId === null || incomingStreamId === currentStreamId) {
+                    setPoll(newPoll);
+                    setVotedOption(null);
+                    setResults(null);
+                }
             });
             socket.on('poll:results', (data) => {
-                if (poll && data.pollId === poll.id) {
+                const incomingStreamId = normalize(data.streamId);
+                const currentStreamId = normalize(streamId);
+
+                if (poll && data.pollId === poll.id && (incomingStreamId === null || incomingStreamId === currentStreamId)) {
                     setResults(data.results);
                 }
             });
             socket.on('poll:closed', (data) => {
-                if (poll && data.id === poll.id) {
-                    setPoll(prev => ({ ...prev, is_active: false }));
+                const incomingStreamId = normalize(data.streamId);
+                const currentStreamId = normalize(streamId);
+
+                if (incomingStreamId === null || incomingStreamId === currentStreamId) {
+                    setPoll(prev => prev ? ({ ...prev, is_active: false }) : null);
                 }
             });
         }
@@ -55,7 +69,7 @@ export default function PollModal({ isOpen, onClose }) {
                 socket.off('poll:closed');
             }
         };
-    }, [isOpen, socket, poll?.id]);
+    }, [isOpen, socket, poll?.id, streamId]);
 
     const handleVote = async (optionId) => {
         if (votedOption || !poll?.is_active) return;
@@ -65,7 +79,7 @@ export default function PollModal({ isOpen, onClose }) {
             setVotedOption(optionId);
             // Result will come via socket if enabled
         } catch (err) {
-            alert(err.response?.data?.error || 'Erro ao votar');
+            toast.error(err.response?.data?.error || 'Erro ao votar');
         } finally {
             setLoading(false);
         }
@@ -109,8 +123,8 @@ export default function PollModal({ isOpen, onClose }) {
                                             onClick={() => handleVote(opt.id)}
                                             disabled={!!votedOption || !poll.is_active || loading}
                                             className={`w-full text-left p-4 rounded-xl border-2 transition-all relative overflow-hidden group ${votedOption === opt.id
-                                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                                    : 'border-gray-100 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-800'
+                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                                : 'border-gray-100 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-800'
                                                 } ${(!poll.is_active || votedOption) && 'cursor-default'}`}
                                         >
                                             {/* Progress Bar background if results exist */}

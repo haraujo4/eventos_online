@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { Lock, Mail, Loader2, User, ShieldCheck } from 'lucide-react';
 import { formatWithMask } from '../utils/maskUtils';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { toast } from 'react-toastify';
 
 export default function Login() {
     const [isLogin, setIsLogin] = useState(true);
@@ -52,7 +53,10 @@ export default function Login() {
             const success = await register(name, email, password, customData);
             if (success) {
                 setIsLogin(true);
-                alert('Cadastro realizado com sucesso! Por favor faça login.');
+                toast.success('Cadastro realizado com sucesso! Por favor faça login.', {
+                    position: "top-center",
+                    autoClose: 5000
+                });
             }
         }
     };

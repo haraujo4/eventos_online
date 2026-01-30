@@ -2,21 +2,28 @@ import { useEffect, useState } from 'react';
 import { useAdminStore } from '../store/useAdminStore';
 import { HelpCircle } from 'lucide-react';
 
-export default function QuestionBanner() {
+export default function QuestionBanner({ streamId }) {
     const { socket, eventSettings } = useAdminStore();
     const [currentQuestion, setCurrentQuestion] = useState(null);
 
     useEffect(() => {
         if (socket) {
             socket.on('question:display', (data) => {
-                setCurrentQuestion(data);
-                setTimeout(() => setCurrentQuestion(null), data.duration || 15000);
+                const normalize = (val) => (val === null || val === undefined || val === 'null' || val === '') ? null : Number(val);
+
+                const incomingStreamId = normalize(data.streamId);
+                const currentStreamId = normalize(streamId);
+
+                if (incomingStreamId === null || incomingStreamId === currentStreamId) {
+                    setCurrentQuestion(data);
+                    setTimeout(() => setCurrentQuestion(null), data.duration || 15000);
+                }
             });
         }
         return () => {
             if (socket) socket.off('question:display');
         };
-    }, [socket]);
+    }, [socket, streamId]);
 
     if (!eventSettings?.questions_enabled || !currentQuestion) return null;
 

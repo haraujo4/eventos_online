@@ -30,13 +30,14 @@ export default function Player() {
 
     useEffect(() => {
         const checkPoll = async () => {
+            if (!localActiveStream?.id) return;
             try {
-                const res = await api.get('/polls/active');
+                const res = await api.get(`/polls/active?streamId=${localActiveStream.id}`);
                 setHasActivePoll(!!res.data);
             } catch (err) { }
         };
         checkPoll();
-    }, []);
+    }, [localActiveStream?.id]);
 
     useEffect(() => {
         if (mediaSettings.streams.length > 0 && !localActiveStream) {
@@ -81,23 +82,34 @@ export default function Player() {
             });
 
             socket.on('poll:new', (poll) => {
-                setHasActivePoll(true);
-                toast.info(`📊 Nova Enquete: ${poll.question}`, {
-                    position: "top-center",
-                    autoClose: 10000,
-                    icon: "🚀"
-                });
+                const normalize = (val) => (val === null || val === undefined || val === 'null' || val === '') ? null : Number(val);
+                const incomingStreamId = normalize(poll.stream_id);
+                const currentStreamId = normalize(localActiveStream?.id);
+
+                if (incomingStreamId === null || incomingStreamId === currentStreamId) {
+                    setHasActivePoll(true);
+                }
             });
 
             socket.on('poll:results', (data) => {
-                toast.success('📈 Os resultados da enquete foram liberados!', {
-                    position: "top-center",
-                    autoClose: 8000
-                });
-                setIsPollOpen(true); // Open modal to show results
+                const normalize = (val) => (val === null || val === undefined || val === 'null' || val === '') ? null : Number(val);
+                const incomingStreamId = normalize(data.streamId);
+                const currentStreamId = normalize(localActiveStream?.id);
+
+                if (incomingStreamId === null || incomingStreamId === currentStreamId) {
+                    setIsPollOpen(true); // Open modal to show results
+                }
             });
 
-            socket.on('poll:closed', () => setHasActivePoll(false));
+            socket.on('poll:closed', (data) => {
+                const normalize = (val) => (val === null || val === undefined || val === 'null' || val === '') ? null : Number(val);
+                const incomingStreamId = normalize(data.streamId);
+                const currentStreamId = normalize(localActiveStream?.id);
+
+                if (incomingStreamId === null || incomingStreamId === currentStreamId) {
+                    setHasActivePoll(false);
+                }
+            });
         }
 
         return () => {
@@ -107,6 +119,7 @@ export default function Player() {
                 socket.off('reaction:update');
                 socket.off('poll:new');
                 socket.off('poll:closed');
+                socket.off('poll:results');
             }
             disconnectSocket();
         };
@@ -174,7 +187,7 @@ export default function Player() {
                                 poster={mediaSettings.posterUrl}
                                 isLive={mediaSettings.isLive}
                             />
-                            <QuestionBanner />
+                            <QuestionBanner streamId={localActiveStream?.id} />
                         </div>
                     </div>
 
@@ -325,7 +338,7 @@ export default function Player() {
             </main>
 
             {/* Modals */}
-            <PollModal isOpen={isPollOpen} onClose={() => setIsPollOpen(false)} />
+            <PollModal isOpen={isPollOpen} onClose={() => setIsPollOpen(false)} streamId={localActiveStream?.id} />
             <QuestionForm isOpen={isQuestionOpen} onClose={() => setIsQuestionOpen(false)} streamId={localActiveStream?.id} />
         </div>
     );

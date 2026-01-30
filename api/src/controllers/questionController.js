@@ -45,19 +45,23 @@ class QuestionController {
     async displayQuestion(req, res) {
         try {
             const { id } = req.params;
+            const { isGlobal } = req.body;
             const question = await questionRepository.markAsDisplayed(id);
 
-            // Broadcast to all players for 15s display
+            // Broadcast to players for 15s display
             if (this.io) {
                 // Fetch full question data for display
                 const allQuestions = await questionRepository.getAll();
                 const fullQuestion = allQuestions.find(q => q.id === parseInt(id));
 
-                this.io.emit('question:display', {
-                    user_name: fullQuestion.user_name,
-                    content: fullQuestion.content,
-                    duration: 15000
-                });
+                if (fullQuestion) {
+                    this.io.emit('question:display', {
+                        user_name: fullQuestion.user_name,
+                        content: fullQuestion.content,
+                        duration: 15000,
+                        streamId: isGlobal ? null : (fullQuestion.stream_id ? Number(fullQuestion.stream_id) : null)
+                    });
+                }
             }
 
             res.json(question);
