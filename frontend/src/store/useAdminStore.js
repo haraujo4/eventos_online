@@ -12,7 +12,17 @@ export const useAdminStore = create((set, get) => ({
     authFields: [],
     socket: null,
 
-    
+    // Theme State
+    theme: localStorage.getItem('theme') || 'light',
+    toggleTheme: () => {
+        set(state => {
+            const newTheme = state.theme === 'light' ? 'dark' : 'light';
+            localStorage.setItem('theme', newTheme);
+            return { theme: newTheme };
+        });
+    },
+
+
     connectSocket: () => {
         if (get().socket) return;
 
@@ -23,9 +33,9 @@ export const useAdminStore = create((set, get) => ({
         });
 
         socket.on('media:update', (data) => {
-            
-            
-            
+
+
+
             if (data.type === 'add') {
                 const currentStreams = get().mediaSettings.streams;
                 set(state => ({
@@ -70,7 +80,7 @@ export const useAdminStore = create((set, get) => ({
     fetchMediaSettings: async () => {
         try {
             const response = await api.get('/media');
-            
+
             const data = response.data;
             console.log('Fetched media settings data:', data);
             if (Array.isArray(data)) {
@@ -103,8 +113,8 @@ export const useAdminStore = create((set, get) => ({
         }
     },
 
-    
-    
+
+
 
     addStream: async (streamData, videoFile, posterFile) => {
         try {
@@ -113,7 +123,7 @@ export const useAdminStore = create((set, get) => ({
             formData.append('title', streamData.title || '');
             formData.append('description', streamData.description || '');
             formData.append('url', streamData.url || '');
-            
+
             if (streamData.type) formData.append('type', streamData.type);
 
             if (streamData.posterUrl) formData.append('poster_url', streamData.posterUrl);
@@ -125,7 +135,7 @@ export const useAdminStore = create((set, get) => ({
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            
+
             return response.data;
         } catch (err) {
             console.error(err);
@@ -136,7 +146,7 @@ export const useAdminStore = create((set, get) => ({
     removeStream: async (id) => {
         try {
             await api.delete(`/media/${id}`);
-            
+
         } catch (err) {
             console.error(err);
         }
@@ -158,7 +168,7 @@ export const useAdminStore = create((set, get) => ({
             const response = await api.put(`/media/${id}`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            
+
             return response.data;
         } catch (err) {
             console.error(err);
@@ -166,7 +176,7 @@ export const useAdminStore = create((set, get) => ({
         }
     },
 
-    
+
     users: [],
     stats: {
         totalUsers: 0,
@@ -184,7 +194,7 @@ export const useAdminStore = create((set, get) => ({
     viewerStatsHistory: [],
     chatHistory: [],
 
-    
+
     fetchUsers: async () => {
         try {
             const response = await api.get('/users');
@@ -210,7 +220,7 @@ export const useAdminStore = create((set, get) => ({
     downloadUserTemplate: async () => {
         try {
             const response = await api.get('/users/import/template', { responseType: 'blob' });
-            
+
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -231,7 +241,7 @@ export const useAdminStore = create((set, get) => ({
             const response = await api.post('/users/import', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            
+
             get().fetchUsers();
             return response.data;
         } catch (err) {
@@ -244,7 +254,7 @@ export const useAdminStore = create((set, get) => ({
         try {
             const response = await api.get('/users/export', { responseType: 'blob' });
 
-            
+
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -281,7 +291,7 @@ export const useAdminStore = create((set, get) => ({
         try {
             const response = await api.get('/chat/export', { responseType: 'blob' });
 
-            
+
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -294,7 +304,7 @@ export const useAdminStore = create((set, get) => ({
         }
     },
 
-    
+
     fetchChatHistory: async () => {
         try {
             const response = await api.get('/chat');
@@ -318,8 +328,8 @@ export const useAdminStore = create((set, get) => ({
     banUser: async (userId) => {
         try {
             await api.post(`/chat/users/${userId}/ban`);
-            get().fetchUsers(); 
-            
+            get().fetchUsers();
+
         } catch (err) {
             console.error('Error banning user:', err);
         }
@@ -328,7 +338,7 @@ export const useAdminStore = create((set, get) => ({
     unbanUser: async (userId) => {
         try {
             await api.post(`/chat/users/${userId}/unban`);
-            get().fetchUsers(); 
+            get().fetchUsers();
         } catch (err) {
             console.error('Error unbanning user:', err);
         }
@@ -337,8 +347,8 @@ export const useAdminStore = create((set, get) => ({
     toggleHighlight: async (messageId) => {
         try {
             await api.put(`/chat/${messageId}/highlight`);
-            
-            
+
+
             set(state => ({
                 chatHistory: state.chatHistory.map(msg =>
                     msg.id === messageId ? { ...msg, isHighlighted: !msg.isHighlighted } : msg
@@ -349,7 +359,7 @@ export const useAdminStore = create((set, get) => ({
         }
     },
 
-    
+
     fetchStats: async () => {
         try {
             const response = await api.get('/stats');
@@ -359,7 +369,7 @@ export const useAdminStore = create((set, get) => ({
         }
     },
 
-    
+
     fetchSettings: async () => {
         try {
             const response = await api.get('/settings');
@@ -412,13 +422,42 @@ export const useAdminStore = create((set, get) => ({
         }
     },
 
+    uploadBackground: async (file) => {
+        try {
+            const formData = new FormData();
+            formData.append('background', file);
+            const response = await api.post('/background', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            set(state => ({
+                eventSettings: { ...state.eventSettings, background_url: response.data.backgroundUrl }
+            }));
+            return response.data;
+        } catch (err) {
+            console.error('Error uploading background:', err);
+            throw err;
+        }
+    },
+
+    removeBackground: async () => {
+        try {
+            await api.delete('/background');
+            set(state => ({
+                eventSettings: { ...state.eventSettings, background_url: null }
+            }));
+        } catch (err) {
+            console.error('Error removing background:', err);
+            throw err;
+        }
+    },
+
     fetchAnalyticsHistory: async (interval = 'minute') => {
         try {
             const response = await api.get(`/stats/history?interval=${interval}`);
-            
+
             const formatted = response.data.map(item => {
                 const date = new Date(item.time_bucket);
-                
+
                 let timeLabel = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 if (interval === 'day') {
                     timeLabel = date.toLocaleDateString([], { month: 'short', day: 'numeric' });

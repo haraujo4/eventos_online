@@ -9,13 +9,15 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: {
-        origin: "*", 
+        origin: "*",
         methods: ["GET", "POST"]
     }
 });
 
 const container = require('./container');
+const reactionController = require('./controllers/reactionController');
 container.init(io);
+reactionController.setSocket(io);
 
 
 
@@ -23,12 +25,12 @@ io.on('connection', (socket) => {
     console.log('New client connected:', socket.id);
 
     socket.on('chat:message', async (msg) => {
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
         try {
             const container = require('./container');
             await container.chatService.saveAndBroadcast(

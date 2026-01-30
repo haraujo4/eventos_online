@@ -1,12 +1,15 @@
 import ReactPlayer from 'react-player';
 import { Play, Globe } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 
-export default function VideoPlayer({ streams = [], poster, isLive }) {
+const VideoPlayer = ({ streams = [], poster, isLive }) => {
+    // ... component implementation ...
+    // Copy the entire component body here.
     const [activeStream, setActiveStream] = useState(streams[0]);
 
     const [error, setError] = useState(false);
-    
+
     const [isMuted, setIsMuted] = useState(true);
 
     useEffect(() => {
@@ -14,15 +17,15 @@ export default function VideoPlayer({ streams = [], poster, isLive }) {
             if (!activeStream) {
                 setActiveStream(streams[0]);
             } else {
-                
+
                 const updated = streams.find(s => s.id === activeStream.id);
                 if (updated) {
-                    
+
                     if (updated.url !== activeStream.url || updated.language !== activeStream.language) {
                         setActiveStream(updated);
                     }
                 } else {
-                    
+
                     setActiveStream(streams[0]);
                 }
             }
@@ -30,7 +33,7 @@ export default function VideoPlayer({ streams = [], poster, isLive }) {
         setError(false);
     }, [streams, activeStream]);
 
-    
+
     useEffect(() => {
         const handleLangChange = (e) => {
             const streamId = e.detail;
@@ -49,12 +52,12 @@ export default function VideoPlayer({ streams = [], poster, isLive }) {
     const getPlayableUrl = (url) => {
         if (!url) return null;
 
-        
+
         if (url.includes('player.vimeo.com/video/')) {
             try {
-                
+
                 const urlObj = new URL(url);
-                const pathParts = urlObj.pathname.split('/'); 
+                const pathParts = urlObj.pathname.split('/');
                 const videoId = pathParts[pathParts.length - 1];
                 const hash = urlObj.searchParams.get('h');
 
@@ -69,7 +72,7 @@ export default function VideoPlayer({ streams = [], poster, isLive }) {
             }
         }
 
-        
+
         if (url.includes('youtube.com/embed/')) {
             try {
                 const urlObj = new URL(url);
@@ -83,7 +86,7 @@ export default function VideoPlayer({ streams = [], poster, isLive }) {
             }
         }
 
-        
+
         if (url.includes('youtube.com/live/')) {
             try {
                 const urlObj = new URL(url);
@@ -102,8 +105,8 @@ export default function VideoPlayer({ streams = [], poster, isLive }) {
 
     return (
         <div className="relative w-full h-full bg-black flex items-center justify-center group overflow-hidden">
-            {}
-            {}
+            { }
+            { }
 
             {isLive && activeStream ? (
                 <>
@@ -118,7 +121,9 @@ export default function VideoPlayer({ streams = [], poster, isLive }) {
                     {activeStream.type === 'embed' ? (
                         <div
                             className="w-full h-full flex items-center justify-center [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:border-0"
-                            dangerouslySetInnerHTML={{ __html: activeStream.url }}
+                            dangerouslySetInnerHTML={{
+                                __html: DOMPurify.sanitize(activeStream.url, { ADD_TAGS: ["iframe"], ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling"] })
+                            }}
                         />
                     ) : activeStream.type === 'file' ? (
                         <video
@@ -133,17 +138,13 @@ export default function VideoPlayer({ streams = [], poster, isLive }) {
                         </video>
                     ) : (
                         <ReactPlayer
-                            
                             url={getPlayableUrl(activeStream.url)}
                             width="100%"
                             height="100%"
                             playing={true}
-                            controls={false} 
+                            controls={false}
                             muted={isMuted}
-                            
                             onPlay={() => setError(false)}
-                            
-                            
                             onReady={() => console.log('Player Ready')}
                             onError={handleError}
                             config={{
@@ -157,7 +158,7 @@ export default function VideoPlayer({ streams = [], poster, isLive }) {
                         />
                     )}
 
-                    {}
+                    { }
                     {isMuted && activeStream.type !== 'embed' && (
                         <button
                             onClick={() => setIsMuted(false)}
@@ -170,7 +171,7 @@ export default function VideoPlayer({ streams = [], poster, isLive }) {
                 </>
             ) : (
                 <div className="absolute inset-0 z-0">
-                    {}
+                    { }
                     {(activeStream?.posterUrl || poster) && (
                         <img
                             src={activeStream?.posterUrl || poster}
@@ -189,4 +190,6 @@ export default function VideoPlayer({ streams = [], poster, isLive }) {
             )}
         </div>
     );
-}
+};
+
+export default React.memo(VideoPlayer);

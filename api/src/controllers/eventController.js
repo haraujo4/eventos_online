@@ -2,7 +2,7 @@ const db = require('../config/db');
 const minioService = require('../services/minioService');
 
 const eventController = {
-    
+
     getSettings: async (req, res) => {
         try {
             const settingsResult = await db.query('SELECT * FROM event_settings LIMIT 1');
@@ -10,9 +10,9 @@ const eventController = {
 
             const authFieldsResult = await db.query('SELECT * FROM auth_fields ORDER BY display_order ASC');
 
-            
-            
-            
+
+
+
 
             res.json({
                 settings,
@@ -24,7 +24,7 @@ const eventController = {
         }
     },
 
-    
+
     updateSettings: async (req, res) => {
         try {
             const { event_name, auth_mode, two_factor_enabled, smtp_config, allow_registration, chat_enabled } = req.body;
@@ -44,15 +44,15 @@ const eventController = {
         }
     },
 
-    
+
     updateAuthFields: async (req, res) => {
         try {
-            const { fields } = req.body; 
+            const { fields } = req.body;
 
-            
-            
-            
-            
+
+
+
+
 
             await db.query('BEGIN');
             await db.query('DELETE FROM auth_fields');
@@ -81,7 +81,6 @@ const eventController = {
                 return res.status(400).json({ message: 'No file uploaded' });
             }
 
-            
             const filename = `logo-${Date.now()}-${req.file.originalname}`;
             const logoUrl = await minioService.uploadImage(filename, req.file.buffer, req.file.mimetype);
 
@@ -90,6 +89,33 @@ const eventController = {
         } catch (err) {
             console.error(err);
             res.status(500).json({ message: 'Error uploading logo' });
+        }
+    },
+
+    uploadBackground: async (req, res) => {
+        try {
+            if (!req.file) {
+                return res.status(400).json({ message: 'No file uploaded' });
+            }
+
+            const filename = `bg-${Date.now()}-${req.file.originalname}`;
+            const backgroundUrl = await minioService.uploadImage(filename, req.file.buffer, req.file.mimetype);
+
+            await db.query('UPDATE event_settings SET background_url = $1', [backgroundUrl]);
+            res.json({ backgroundUrl });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ message: 'Error uploading background' });
+        }
+    },
+
+    removeBackground: async (req, res) => {
+        try {
+            await db.query('UPDATE event_settings SET background_url = NULL');
+            res.json({ message: 'Background removed' });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ message: 'Error removing background' });
         }
     }
 };

@@ -7,6 +7,7 @@ const userRoutes = require('./userRoutes');
 const chatRoutes = require('./chatRoutes');
 const statsRoutes = require('./statsRoutes');
 const eventRoutes = require('./eventRoutes');
+const reactionRoutes = require('./reactionRoutes');
 
 
 router.use('/auth', authRoutes);
@@ -14,7 +15,8 @@ router.use('/media', mediaRoutes);
 router.use('/users', userRoutes);
 router.use('/chat', chatRoutes);
 router.use('/stats', statsRoutes);
-router.use('/', eventRoutes); 
+router.use('/reactions', reactionRoutes);
+router.use('/', eventRoutes);
 
 router.get('/', (req, res) => {
     res.json({ message: 'API is running' });

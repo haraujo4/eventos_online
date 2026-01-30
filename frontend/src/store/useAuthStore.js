@@ -8,13 +8,17 @@ export const useAuthStore = create((set, get) => ({
     isLoading: false,
     error: null,
     requires2fa: false,
-    tempUserId: null, 
+    tempUserId: null,
     authFields: [],
+    eventSettings: null,
 
     fetchAuthFields: async () => {
         try {
-            const response = await api.get('/settings'); 
-            set({ authFields: response.data.authFields });
+            const response = await api.get('/settings');
+            set({
+                authFields: response.data.authFields,
+                eventSettings: response.data.settings
+            });
         } catch (err) {
             console.error('Error fetching auth fields:', err);
         }

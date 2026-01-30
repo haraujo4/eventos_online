@@ -13,17 +13,17 @@ export function DashboardHome() {
         fetchStats();
         fetchAnalyticsHistory(interval);
 
-        
+
         const timer = setInterval(() => fetchAnalyticsHistory(interval), 60000);
         return () => clearInterval(timer);
     }, [fetchStats, fetchAnalyticsHistory, interval]);
 
     const StatCard = ({ title, value, icon: Icon, color }) => (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors">
             <div className="flex items-center justify-between">
                 <div>
-                    <p className="text-sm font-medium text-gray-500">{title}</p>
-                    <p className="text-3xl font-bold mt-2 text-gray-900">{value}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
+                    <p className="text-3xl font-bold mt-2 text-gray-900 dark:text-white">{value}</p>
                 </div>
                 <div className={`p-4 rounded-lg ${color}`}>
                     <Icon className="w-6 h-6 text-white" />
@@ -34,7 +34,7 @@ export function DashboardHome() {
 
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800">Visão Geral do Painel</h2>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Visão Geral do Painel</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard title="Espectadores ao Vivo" value={currentViewers || 0} icon={Eye} color="bg-red-500" />
@@ -44,17 +44,17 @@ export function DashboardHome() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {}
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                { }
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold text-gray-800">Tendências de Audiência</h3>
+                        <h3 className="font-bold text-gray-800 dark:text-white">Tendências de Audiência</h3>
                         <div className="flex items-center gap-3">
-                            <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+                            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1 gap-1">
                                 {['minute', 'hour', 'day'].map((i) => (
                                     <button
                                         key={i}
                                         onClick={() => setIntervalState(i)}
-                                        className={`px-3 py-1 text-xs font-medium rounded-md capitalize transition-colors ${interval === i ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'
+                                        className={`px-3 py-1 text-xs font-medium rounded-md capitalize transition-colors ${interval === i ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                                             }`}
                                     >
                                         {i === 'minute' ? 'minuto' : i === 'hour' ? 'hora' : 'dia'}
@@ -63,7 +63,7 @@ export function DashboardHome() {
                             </div>
                             <button
                                 onClick={exportAudienceReport}
-                                className="text-gray-500 hover:text-blue-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
+                                className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                                 title="Exportar Relatório de Audiência"
                             >
                                 <Download className="w-5 h-5" />
@@ -74,11 +74,11 @@ export function DashboardHome() {
                         {viewerStatsHistory && viewerStatsHistory.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={viewerStatsHistory}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" strokeOpacity={0.2} />
                                     <XAxis dataKey="time" hide />
-                                    <YAxis allowDecimals={false} />
+                                    <YAxis allowDecimals={false} tick={{ fill: '#9ca3af' }} />
                                     <Tooltip
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                        contentStyle={{ backgroundColor: '#1f2937', color: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                     />
                                     <Line
                                         type="monotone"
@@ -98,21 +98,21 @@ export function DashboardHome() {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <h3 className="font-bold text-gray-800 mb-4">Atividade Recente</h3>
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors">
+                    <h3 className="font-bold text-gray-800 dark:text-white mb-4">Atividade Recente</h3>
                     <div className="space-y-4">
                         {stats?.recentActivity?.length > 0 ? (
                             stats.recentActivity.map((activity, index) => (
                                 <div key={activity.id || index} className="flex items-center gap-4 text-sm">
-                                    <div className={`w-2 h-2 rounded-full ${activity.type === 'message' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
-                                    <p><span className="font-medium">
+                                    <div className={`flex-shrink-0 w-2 h-2 rounded-full ${activity.type === 'message' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
+                                    <p className="text-gray-700 dark:text-gray-300"><span className="font-medium text-gray-900 dark:text-white">
                                         {activity.type === 'message' ? 'Nova Mensagem' : 'Sistema'}
                                     </span> {activity.action}</p>
-                                    <span className="text-gray-400 ml-auto">{new Date(activity.time).toLocaleTimeString()}</span>
+                                    <span className="text-gray-400 ml-auto whitespace-nowrap">{new Date(activity.time).toLocaleTimeString()}</span>
                                 </div>
                             ))
                         ) : (
-                            <p className="text-gray-500 text-sm">Nenhuma atividade recente</p>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm">Nenhuma atividade recente</p>
                         )}
                     </div>
                 </div>

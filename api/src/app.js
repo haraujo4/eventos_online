@@ -3,11 +3,31 @@ const cors = require('cors');
 const routes = require('./routes');
 const { createTables } = require('./repositories/dbInit');
 
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+// Security Headers
+app.use(helmet());
 
+// CORS Configuration
+const corsOptions = {
+    origin: process.env.CORS_ORIGIN || '*', // Should be set to frontend URL in production
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+};
+app.use(cors(corsOptions));
+
+// Rate Limiting (General)
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 1000, // Limit each IP to 1000 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api', limiter);
+
+app.use(express.json());
 
 createTables().catch(err => console.error('Failed to create tables:', err));
 
