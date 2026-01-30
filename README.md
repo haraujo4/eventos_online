@@ -265,10 +265,6 @@ npm run dev
   - Perguntas sendo exibidas em tela
   - Ações de moderação (banimento, mensagens deletadas)
 
-## 🎨 Capturas de Tela
-
-*(Adicione aqui screenshots do player, painel admin, chat, enquetes, etc.)*
-
 ## 📄 Licença
 
 Este projeto está sob licença MIT.
