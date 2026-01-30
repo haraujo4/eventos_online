@@ -63,7 +63,6 @@ class ChatService {
         const isGlobal = settings.chat_global; // This should be boolean
         const isAdmin = userRole === 'admin' || userRole === 'moderator';
 
-        console.log('Chat Debug:', { isModerated, isGlobal, streamId, content, userRole });
 
         if (!content || content.trim() === '') return null;
 
@@ -75,7 +74,6 @@ class ChatService {
         // Note: isApproved must be explicit boolean
         const isApproved = !isModerated || isAdmin;
 
-        console.log('Chat Decision:', { finalStreamId, isApproved });
 
         const dto = new CreateMessageDTO(userId, userName, userRole, content);
         dto.streamId = finalStreamId;

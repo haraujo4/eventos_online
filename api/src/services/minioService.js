@@ -10,7 +10,6 @@ class MinioService {
         try {
             const exists = await minioClient.bucketExists(bucket);
             if (!exists) {
-                console.log(`Bucket ${bucket} missing. Creating...`);
                 await minioClient.makeBucket(bucket, 'us-east-1');
             }
 
@@ -26,7 +25,6 @@ class MinioService {
                 }]
             };
             await minioClient.setBucketPolicy(bucket, JSON.stringify(policy));
-            console.log(`Bucket ${bucket} policy set to public.`);
         } catch (err) {
             console.error(`Error ensuring bucket ${bucket}:`, err);
             

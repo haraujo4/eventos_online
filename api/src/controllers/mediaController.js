@@ -20,8 +20,6 @@ class MediaController {
 
     async create(req, res) {
         try {
-            console.log("DEBUG: createStream called. Body:", JSON.stringify(req.body));
-            console.log("DEBUG: Files:", req.files ? Object.keys(req.files) : "None");
 
             const files = req.files || {};
             const videoFile = files.video ? files.video[0] : null;

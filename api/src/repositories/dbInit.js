@@ -67,14 +67,12 @@ const createTables = async () => {
     try {
       await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active'`);
     } catch (e) {
-      console.log('Migration note: status column might already exist or error ignored', e.message);
     }
 
 
     try {
       await db.query(`ALTER TABLE streams ADD COLUMN IF NOT EXISTS type VARCHAR(50) DEFAULT 'direct'`);
     } catch (e) {
-      console.log('Migration note: type column might already exist or error ignored', e.message);
     }
 
 
@@ -82,7 +80,6 @@ const createTables = async () => {
       await db.query(`ALTER TABLE streams ADD COLUMN IF NOT EXISTS title VARCHAR(255)`);
       await db.query(`ALTER TABLE streams ADD COLUMN IF NOT EXISTS description TEXT`);
     } catch (e) {
-      console.log('Migration note: title/description columns might already exist or error ignored', e.message);
     }
 
 
@@ -121,7 +118,6 @@ const createTables = async () => {
       try {
         await db.query(`ALTER TABLE polls ADD COLUMN IF NOT EXISTS stream_id INTEGER REFERENCES streams(id) ON DELETE CASCADE`);
       } catch (e) {
-        console.log('Migration note: stream_id column in polls might already exist', e.message);
       }
       await db.query(`
             CREATE TABLE IF NOT EXISTS poll_options (
@@ -218,10 +214,8 @@ const createTables = async () => {
       await db.query(`ALTER TABLE event_settings ADD COLUMN IF NOT EXISTS chat_global BOOLEAN DEFAULT true`);
 
     } catch (e) {
-      console.log('Migration note: Event Config tables/columns might already exist or error ignored', e.message);
     }
 
-    console.log('Tables created successfully');
 
 
     const adminCheck = await db.query('SELECT * FROM users WHERE email = $1', ['admin@test.com']);
@@ -232,7 +226,6 @@ const createTables = async () => {
         'INSERT INTO users (email, password, name, role) VALUES ($1, $2, $3, $4)',
         ['admin@test.com', hashedPassword, 'Admin User', 'admin']
       );
-      console.log('Admin user seeded');
     }
 
 
@@ -244,7 +237,6 @@ const createTables = async () => {
         'INSERT INTO users (email, password, name, role) VALUES ($1, $2, $3, $4)',
         ['user@test.com', hashedPassword, 'Regular User', 'user']
       );
-      console.log('Regular user seeded');
     }
   } catch (err) {
     console.error('Error creating tables:', err);

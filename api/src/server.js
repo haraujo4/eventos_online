@@ -31,7 +31,6 @@ eventController.setSocket(io);
 
 
 io.on('connection', (socket) => {
-    console.log('New client connected:', socket.id);
 
     socket.on('chat:message', async (msg) => {
 
@@ -55,7 +54,6 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
     });
 });
 
@@ -64,6 +62,5 @@ module.exports = { server, io };
 
 if (require.main === module) {
     server.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
     });
 }

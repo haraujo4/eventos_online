@@ -30,7 +30,6 @@ export const useAdminStore = create((set, get) => ({
         const socket = io('http://localhost:3000');
 
         socket.on('connect', () => {
-            console.log('Socket connected');
         });
 
         socket.on('media:update', (data) => {
@@ -89,7 +88,6 @@ export const useAdminStore = create((set, get) => ({
             const response = await api.get('/media');
 
             const data = response.data;
-            console.log('Fetched media settings data:', data);
             if (Array.isArray(data)) {
                 set(state => ({
                     mediaSettings: { ...state.mediaSettings, streams: data }

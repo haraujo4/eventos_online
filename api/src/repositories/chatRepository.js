@@ -26,7 +26,6 @@ class ChatRepository extends IChatRepository {
         `;
         const params = [];
 
-        console.log('Repo findRecent:', { streamId, isGlobal, includeAllStreams });
 
         if (includeAllStreams) {
             // Admin Mode: Fetch everything

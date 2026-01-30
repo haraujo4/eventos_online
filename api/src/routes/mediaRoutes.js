@@ -10,7 +10,6 @@ const cpUpload = upload.fields([{ name: 'video', maxCount: 1 }, { name: 'poster'
 router.get('/', (req, res) => container.mediaController.getAll(req, res));
 
 const debugLog = (req, res, next) => {
-    console.log("DEBUG: Request hit mediaRoutes POST /");
     next();
 };
 

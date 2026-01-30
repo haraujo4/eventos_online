@@ -18,7 +18,6 @@ export const useChatStore = create((set, get) => ({
         const socket = io('http://localhost:3000');
 
         socket.on('connect', () => {
-            console.log('Chat Socket connected');
             set({ isConnected: true });
         });
 

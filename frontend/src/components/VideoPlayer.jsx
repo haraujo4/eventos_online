@@ -145,7 +145,6 @@ const VideoPlayer = ({ streams = [], poster, isLive }) => {
                             controls={false}
                             muted={isMuted}
                             onPlay={() => setError(false)}
-                            onReady={() => console.log('Player Ready')}
                             onError={handleError}
                             config={{
                                 file: {

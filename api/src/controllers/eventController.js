@@ -1,5 +1,4 @@
-const db = require('../config/db');
-const minioService = require('../services/minioService');
+const eventService = require('../services/eventService');
 
 class EventController {
     constructor() {
@@ -19,14 +18,8 @@ class EventController {
 
     async getSettings(req, res) {
         try {
-            const settingsResult = await db.query('SELECT * FROM event_settings LIMIT 1');
-            const settings = settingsResult.rows[0] || {};
-            const authFieldsResult = await db.query('SELECT * FROM auth_fields ORDER BY display_order ASC');
-
-            res.json({
-                settings,
-                authFields: authFieldsResult.rows
-            });
+            const data = await eventService.getSettings();
+            res.json(data);
         } catch (err) {
             console.error(err);
             res.status(500).json({ message: 'Error fetching settings' });
@@ -35,83 +28,24 @@ class EventController {
 
     async updateSettings(req, res) {
         try {
-            const updates = req.body;
-
-            // Get current settings to merge
-            const currentRes = await db.query('SELECT * FROM event_settings LIMIT 1');
-            const current = currentRes.rows[0] || {};
-
-            const merged = { ...current, ...updates };
-
-            let result;
-            if (merged.id) {
-                const query = `
-                    UPDATE event_settings 
-                    SET event_name = $1, auth_mode = $2, two_factor_enabled = $3, 
-                        smtp_config = $4, allow_registration = $5, chat_enabled = $6,
-                        polls_enabled = $7, comments_enabled = $8, questions_enabled = $9,
-                        chat_moderated = $10, chat_global = $11,
-                        updated_at = NOW()
-                    WHERE id = $12
-                    RETURNING *
-                `;
-
-                result = await db.query(query, [
-                    merged.event_name, merged.auth_mode, merged.two_factor_enabled,
-                    merged.smtp_config, merged.allow_registration, merged.chat_enabled,
-                    merged.polls_enabled, merged.comments_enabled, merged.questions_enabled,
-                    merged.chat_moderated, merged.chat_global,
-                    merged.id
-                ]);
-            } else {
-                const query = `
-                    INSERT INTO event_settings 
-                    (event_name, auth_mode, two_factor_enabled, smtp_config, allow_registration, chat_enabled, polls_enabled, comments_enabled, questions_enabled, chat_moderated, chat_global)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-                    RETURNING *
-                `;
-
-                result = await db.query(query, [
-                    merged.event_name, merged.auth_mode, merged.two_factor_enabled,
-                    merged.smtp_config, merged.allow_registration, merged.chat_enabled,
-                    merged.polls_enabled, merged.comments_enabled, merged.questions_enabled,
-                    merged.chat_moderated, merged.chat_global
-                ]);
-            }
-
-            const updatedSettings = result.rows[0];
+            const updated = await eventService.updateSettings(req.body);
 
             if (this.io) {
-                console.log('Broadcasting settings update:', updatedSettings);
-                this.io.emit('settings:update', updatedSettings);
+                this.io.emit('settings:update', updated);
             }
 
-            res.json(updatedSettings);
+            res.json(updated);
         } catch (err) {
-            console.error('Error updating settings:', err);
+            console.error(err);
             res.status(500).json({ message: 'Error updating settings' });
         }
     }
 
     async updateAuthFields(req, res) {
         try {
-            const { fields } = req.body;
-            await db.query('BEGIN');
-            await db.query('DELETE FROM auth_fields');
-
-            if (fields && fields.length > 0) {
-                for (const field of fields) {
-                    await db.query(
-                        'INSERT INTO auth_fields (field_name, label, input_type, is_required, options, display_order, mask, placeholder) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-                        [field.field_name, field.label, field.input_type, field.is_required, JSON.stringify(field.options), field.display_order, field.mask, field.placeholder]
-                    );
-                }
-            }
-
-            await db.query('COMMIT');
+            await eventService.updateAuthFields(req.body);
             res.json({ message: 'Auth fields updated' });
         } catch (err) {
-            await db.query('ROLLBACK');
             console.error(err);
             res.status(500).json({ message: 'Error updating auth fields' });
         }
@@ -119,48 +53,47 @@ class EventController {
 
     async uploadLogo(req, res) {
         try {
-            if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+            const updated = await eventService.uploadLogo(req.file);
 
-            const filename = `logo-${Date.now()}-${req.file.originalname}`;
-            const logoUrl = await minioService.uploadImage(filename, req.file.buffer, req.file.mimetype);
+            if (this.io) {
+                this.io.emit('settings:update', updated);
+            }
 
-            const result = await db.query('UPDATE event_settings SET logo_url = $1 RETURNING *', [logoUrl]);
-            const updated = result.rows[0];
-
-            if (this.io) this.io.emit('settings:update', updated);
-
-            res.json({ logoUrl });
+            res.json({ logoUrl: updated.logo_url, settings: updated });
         } catch (err) {
             console.error(err);
-            res.status(500).json({ message: 'Error uploading logo' });
+            const message = err.message === 'No file provided'
+                ? 'No file uploaded'
+                : 'Error uploading logo';
+            res.status(err.message === 'No file provided' ? 400 : 500).json({ message });
         }
     }
 
     async uploadBackground(req, res) {
         try {
-            if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+            const updated = await eventService.uploadBackground(req.file);
 
-            const filename = `bg-${Date.now()}-${req.file.originalname}`;
-            const backgroundUrl = await minioService.uploadImage(filename, req.file.buffer, req.file.mimetype);
+            if (this.io) {
+                this.io.emit('settings:update', updated);
+            }
 
-            const result = await db.query('UPDATE event_settings SET background_url = $1 RETURNING *', [backgroundUrl]);
-            const updated = result.rows[0];
-
-            if (this.io) this.io.emit('settings:update', updated);
-
-            res.json({ backgroundUrl });
+            res.json({ backgroundUrl: updated.background_url, settings: updated });
         } catch (err) {
             console.error(err);
-            res.status(500).json({ message: 'Error uploading background' });
+            const message = err.message === 'No file provided'
+                ? 'No file uploaded'
+                : 'Error uploading background';
+            res.status(err.message === 'No file provided' ? 400 : 500).json({ message });
         }
     }
 
     async removeBackground(req, res) {
         try {
-            const result = await db.query('UPDATE event_settings SET background_url = NULL RETURNING *');
-            const updated = result.rows[0];
+            const updated = await eventService.removeBackground();
 
-            if (this.io) this.io.emit('settings:update', updated);
+            if (this.io) {
+                this.io.emit('settings:update', updated);
+            }
 
             res.json({ message: 'Background removed' });
         } catch (err) {
@@ -171,41 +104,14 @@ class EventController {
 
     async resetEvent(req, res) {
         try {
-            await db.query('BEGIN');
-
-            // Delete order matters due to FK constraints if CASCADE is not set everywhere.
-            // Assuming most have ON DELETE CASCADE, but explicit deletion is safer.
-
-            // 1. Delete Interactions
-            await db.query('DELETE FROM messages');
-            await db.query('DELETE FROM questions');
-            await db.query('DELETE FROM comments');
-            await db.query('DELETE FROM stream_reactions');
-
-            // 2. Delete Polls (Votes and Options cascade usually, but let's be thorough)
-            await db.query('DELETE FROM poll_votes');
-            await db.query('DELETE FROM poll_options');
-            await db.query('DELETE FROM polls');
-
-            // 3. Delete Session Logs (references users)
-            await db.query("DELETE FROM session_logs WHERE user_id IN (SELECT id FROM users WHERE role != 'admin')");
-
-            // 4. Delete Users (Except Admins)
-            // 'admin' role is usually hardcoded, verify your roles.
-            await db.query("DELETE FROM users WHERE role != 'admin'");
-
-            await db.query('COMMIT');
+            await eventService.resetEvent();
 
             if (this.io) {
-                // Determine what to emit. Maybe force logout for non-admins?
-                // For now, just settings update or similar might be enough, 
-                // but really we want to clear client states.
                 this.io.emit('event:reset');
             }
 
             res.json({ message: 'Event reset successfully' });
         } catch (err) {
-            await db.query('ROLLBACK');
             console.error('Error resetting event:', err);
             res.status(500).json({ message: 'Error resetting event' });
         }
