@@ -7,6 +7,12 @@ import VideoPlayer from '../components/VideoPlayer';
 import Chat from '../components/Chat';
 import { useReactionStore } from '../store/useReactionStore';
 import { useEffect, useState } from 'react';
+import { BarChart2, HelpCircle } from 'lucide-react';
+import api from '../services/api';
+import PollModal from '../components/PollModal';
+import QuestionBanner from '../components/QuestionBanner';
+import QuestionForm from '../components/QuestionForm';
+import CommentSection from '../components/CommentSection';
 
 export default function Player() {
     const { user, logout } = useAuthStore();
@@ -17,6 +23,19 @@ export default function Player() {
 
 
     const [localActiveStream, setLocalActiveStream] = useState(null);
+    const [isPollOpen, setIsPollOpen] = useState(false);
+    const [isQuestionOpen, setIsQuestionOpen] = useState(false);
+    const [hasActivePoll, setHasActivePoll] = useState(false);
+
+    useEffect(() => {
+        const checkPoll = async () => {
+            try {
+                const res = await api.get('/polls/active');
+                setHasActivePoll(!!res.data);
+            } catch (err) { }
+        };
+        checkPoll();
+    }, []);
 
     useEffect(() => {
         if (mediaSettings.streams.length > 0 && !localActiveStream) {
@@ -59,6 +78,9 @@ export default function Player() {
                     useReactionStore.getState().updateStats(stats);
                 }
             });
+
+            socket.on('poll:new', () => setHasActivePoll(true));
+            socket.on('poll:closed', () => setHasActivePoll(false));
         }
 
         return () => {
@@ -66,6 +88,8 @@ export default function Player() {
             if (socket) {
                 socket.emit('leave:viewers');
                 socket.off('reaction:update');
+                socket.off('poll:new');
+                socket.off('poll:closed');
             }
             disconnectSocket();
         };
@@ -77,9 +101,9 @@ export default function Player() {
     };
 
     return (
-        <div className="h-screen flex flex-col bg-gray-50 dark:bg-black text-gray-900 dark:text-white overflow-hidden">
+        <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-black text-gray-900 dark:text-white">
             { }
-            <header className="h-16 px-6 bg-white dark:bg-gray-900/90 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center backdrop-blur-sm z-50">
+            <header className="sticky top-0 h-16 px-6 bg-white dark:bg-gray-900/90 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center backdrop-blur-sm z-50">
                 <div className="flex items-center gap-2">
                     {eventSettings?.logo_url ? (
                         <img
@@ -120,16 +144,19 @@ export default function Player() {
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+            <main className="flex-1 flex flex-col lg:flex-row relative">
                 {/* Video Area */}
-                <div className="flex-1 min-w-0 h-full flex flex-col">
+                <div className="flex-1 min-w-0 flex flex-col">
                     {/* Video Player Container */}
-                    <div className="flex-1 relative bg-black min-h-0">
-                        <VideoPlayer
-                            streams={mediaSettings.streams}
-                            poster={mediaSettings.posterUrl}
-                            isLive={mediaSettings.isLive}
-                        />
+                    <div className="w-full bg-black flex justify-center flex-shrink-0">
+                        <div className="w-full lg:max-w-[75%] aspect-video relative">
+                            <VideoPlayer
+                                streams={mediaSettings.streams}
+                                poster={mediaSettings.posterUrl}
+                                isLive={mediaSettings.isLive}
+                            />
+                            <QuestionBanner />
+                        </div>
                     </div>
 
                     {/* Stream Info & Controls */}
@@ -144,6 +171,16 @@ export default function Player() {
                                     <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${mediaSettings.isLive ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
                                         {mediaSettings.isLive ? 'AO VIVO' : 'OFFLINE'}
                                     </span>
+
+                                    {(hasActivePoll || eventSettings?.polls_enabled) && (
+                                        <button
+                                            onClick={() => setIsPollOpen(true)}
+                                            className={`flex items-center gap-1.5 px-3 py-0.5 rounded text-xs font-bold uppercase tracking-wider transition-all animate-pulse shadow-lg ${hasActivePoll ? 'bg-blue-600 text-white ring-2 ring-blue-400/50' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
+                                        >
+                                            <BarChart2 className="w-3 h-3" />
+                                            Enquete
+                                        </button>
+                                    )}
                                     <span>•</span>
                                     <span>{new Date().toLocaleDateString()}</span>
                                 </div>
@@ -194,6 +231,16 @@ export default function Player() {
                                         </button>
                                     ))}
                                 </div>
+
+                                {eventSettings?.questions_enabled && (
+                                    <button
+                                        onClick={() => setIsQuestionOpen(true)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-bold shadow-md transition-all active:scale-95"
+                                    >
+                                        <HelpCircle className="w-4 h-4" />
+                                        Perguntar
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -203,16 +250,25 @@ export default function Player() {
                                 {localActiveStream?.description || "Nenhuma descrição disponível para esta transmissão."}
                             </p>
                         </div>
+
+                        {/* Comments Section */}
+                        {eventSettings?.comments_enabled && (
+                            <CommentSection streamId={localActiveStream?.id} />
+                        )}
                     </div>
                 </div>
 
                 {/* Sidebar (Chat) */}
                 {eventSettings?.chat_enabled && (
-                    <aside className="w-full lg:w-96 h-[40vh] lg:h-full bg-white dark:bg-gray-900 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-800 flex-shrink-0 transition-colors">
+                    <aside className="w-full lg:w-96 lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] bg-white dark:bg-gray-900 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-800 flex-shrink-0 transition-colors z-40">
                         <Chat />
                     </aside>
                 )}
             </main>
+
+            {/* Modals */}
+            <PollModal isOpen={isPollOpen} onClose={() => setIsPollOpen(false)} />
+            <QuestionForm isOpen={isQuestionOpen} onClose={() => setIsQuestionOpen(false)} streamId={localActiveStream?.id} />
         </div>
     );
 }

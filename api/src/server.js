@@ -16,8 +16,15 @@ const io = new Server(server, {
 
 const container = require('./container');
 const reactionController = require('./controllers/reactionController');
+const pollController = require('./controllers/pollController');
+const commentController = require('./controllers/commentController');
+const questionController = require('./controllers/questionController');
+
 container.init(io);
 reactionController.setSocket(io);
+pollController.setSocket(io);
+commentController.setSocket(io);
+questionController.setSocket(io);
 
 
 

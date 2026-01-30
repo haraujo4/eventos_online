@@ -487,5 +487,102 @@ export const useAdminStore = create((set, get) => ({
         } catch (err) {
             console.error('Error exporting audience report:', err);
         }
+    },
+
+    // Polls
+    polls: [],
+    fetchPolls: async () => {
+        try {
+            const response = await api.get('/polls');
+            set({ polls: response.data });
+        } catch (err) {
+            console.error('Error fetching polls:', err);
+        }
+    },
+    createPoll: async (pollData) => {
+        try {
+            await api.post('/polls', pollData);
+            get().fetchPolls();
+        } catch (err) {
+            console.error('Error creating poll:', err);
+            throw err;
+        }
+    },
+    updatePollStatus: async (pollId, status) => {
+        try {
+            await api.put(`/polls/${pollId}/status`, status);
+            get().fetchPolls();
+        } catch (err) {
+            console.error('Error updating poll status:', err);
+            throw err;
+        }
+    },
+    deletePoll: async (pollId) => {
+        try {
+            await api.delete(`/polls/${pollId}`);
+            get().fetchPolls();
+        } catch (err) {
+            console.error('Error deleting poll:', err);
+            throw err;
+        }
+    },
+
+    // Comments
+    pendingComments: [],
+    approvedComments: [],
+    fetchPendingComments: async () => {
+        try {
+            const response = await api.get('/comments/pending');
+            set({ pendingComments: response.data });
+        } catch (err) {
+            console.error('Error fetching pending comments:', err);
+        }
+    },
+    approveComment: async (commentId) => {
+        try {
+            await api.put(`/comments/${commentId}/approve`);
+            get().fetchPendingComments();
+        } catch (err) {
+            console.error('Error approving comment:', err);
+            throw err;
+        }
+    },
+    deleteComment: async (commentId) => {
+        try {
+            await api.delete(`/comments/${commentId}`);
+            get().fetchPendingComments();
+        } catch (err) {
+            console.error('Error deleting comment:', err);
+            throw err;
+        }
+    },
+
+    // Questions
+    questions: [],
+    fetchQuestions: async () => {
+        try {
+            const response = await api.get('/questions');
+            set({ questions: response.data });
+        } catch (err) {
+            console.error('Error fetching questions:', err);
+        }
+    },
+    displayQuestion: async (questionId) => {
+        try {
+            await api.put(`/questions/${questionId}/display`);
+            get().fetchQuestions();
+        } catch (err) {
+            console.error('Error displaying question:', err);
+            throw err;
+        }
+    },
+    deleteQuestion: async (questionId) => {
+        try {
+            await api.delete(`/questions/${questionId}`);
+            get().fetchQuestions();
+        } catch (err) {
+            console.error('Error deleting question:', err);
+            throw err;
+        }
     }
 }));

@@ -11,6 +11,8 @@ import ReactionReport from '../components/admin/ReactionReport';
 
 import { ChatModeration } from '../components/admin/ChatModeration';
 import { EventSettings } from '../components/admin/EventSettings';
+import { ResourceManager } from '../components/admin/ResourceManager';
+import { Sparkles } from 'lucide-react';
 
 export default function Admin() {
     const { user, logout } = useAuthStore();
@@ -37,6 +39,7 @@ export default function Admin() {
         { id: 'users', label: 'Usuários', icon: Users },
         { id: 'media', label: 'Mídia', icon: Video },
         { id: 'chat', label: 'Moderação', icon: MessageSquare },
+        { id: 'recursos', label: 'Recursos', icon: Sparkles },
         { id: 'reactions', label: 'Interações', icon: ThumbsUp },
         { id: 'settings', label: 'Configuração', icon: Settings },
     ].filter(item => {
@@ -59,6 +62,7 @@ export default function Admin() {
             case 'media': return <MediaConfig />;
             case 'reactions': return <ReactionReport />;
             case 'chat': return <ChatModeration />;
+            case 'recursos': return <ResourceManager />;
             case 'settings': return <EventSettings />;
             default: return <DashboardHome />;
         }
