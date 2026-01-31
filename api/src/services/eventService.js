@@ -25,7 +25,7 @@ class EventService {
             throw new Error('No file provided');
         }
 
-        const logoUrl = await minioService.uploadFile(file, 'logos');
+        const logoUrl = await minioService.uploadFile('logos', file.originalname, file.buffer, { 'Content-Type': file.mimetype });
         return await eventRepository.uploadLogo(logoUrl);
     }
 
@@ -34,7 +34,7 @@ class EventService {
             throw new Error('No file provided');
         }
 
-        const backgroundUrl = await minioService.uploadFile(file, 'backgrounds');
+        const backgroundUrl = await minioService.uploadFile('backgrounds', file.originalname, file.buffer, { 'Content-Type': file.mimetype });
         return await eventRepository.uploadBackground(backgroundUrl);
     }
 

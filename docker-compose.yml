@@ -34,15 +34,21 @@ services:
 
   createbuckets:
     image: minio/mc
+    container_name: events_createbuckets
     depends_on:
       - minio
     entrypoint: >
       /bin/sh -c "
+      sleep 5;
       /usr/bin/mc config host add myminio http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
-      /usr/bin/mc mb myminio/videos;
-      /usr/bin/mc mb myminio/thumbnails;
+      /usr/bin/mc mb myminio/videos || true;
+      /usr/bin/mc mb myminio/thumbnails || true;
+      /usr/bin/mc mb myminio/logos || true;
+      /usr/bin/mc mb myminio/backgrounds || true;
       /usr/bin/mc anonymous set public myminio/videos;
       /usr/bin/mc anonymous set public myminio/thumbnails;
+      /usr/bin/mc anonymous set public myminio/logos;
+      /usr/bin/mc anonymous set public myminio/backgrounds;
       exit 0;
       "
     networks:
