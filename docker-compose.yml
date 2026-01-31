@@ -54,6 +54,44 @@ services:
     networks:
       - events_net
 
+  api:
+    build: ./api
+    container_name: events_api
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=postgres
+      - DB_USER=${DB_USER:-admin}
+      - DB_PASSWORD=${DB_PASSWORD:-admin123}
+      - DB_NAME=${DB_NAME:-events_db}
+      - DB_PORT=5432
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_USE_SSL=false
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_PUBLIC_HOST=localhost
+      - JWT_SECRET=${JWT_SECRET:-your_super_secret_key_123}
+    depends_on:
+      postgres:
+        condition: service_started
+      minio:
+        condition: service_started
+      createbuckets:
+        condition: service_completed_successfully
+    networks:
+      - events_net
+
+  frontend:
+    build: ./frontend
+    container_name: events_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    networks:
+      - events_net
+
 volumes:
   postgres_data:
   minio_data:
