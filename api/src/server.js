@@ -1,4 +1,9 @@
-require('dotenv').config();
+console.log('--- API STARTING ---');
+console.log('Checking Environment Variables...');
+console.log('DB_HOST:', process.env.DB_HOST);
+console.log('DB_USER:', process.env.DB_USER);
+console.log('PORT:', process.env.PORT || 3000);
+
 const http = require('http');
 const { Server } = require('socket.io');
 const app = require('./app');
@@ -21,6 +26,7 @@ const commentController = require('./controllers/commentController');
 const questionController = require('./controllers/questionController');
 const eventController = require('./controllers/eventController');
 
+console.log('Initializing modules...');
 container.init(io);
 reactionController.setSocket(io);
 pollController.setSocket(io);
@@ -28,17 +34,8 @@ commentController.setSocket(io);
 questionController.setSocket(io);
 eventController.setSocket(io);
 
-
-
 io.on('connection', (socket) => {
-
     socket.on('chat:message', async (msg) => {
-
-
-
-
-
-
         try {
             const container = require('./container');
             await container.chatService.saveAndBroadcast(
@@ -52,15 +49,13 @@ io.on('connection', (socket) => {
             console.error('Error handling chat message:', err);
         }
     });
-
-    socket.on('disconnect', () => {
-    });
 });
-
 
 module.exports = { server, io };
 
 if (require.main === module) {
     server.listen(PORT, () => {
+        console.log(`--- API SUCCESS ---`);
+        console.log(`Server running on port ${PORT}`);
     });
 }
