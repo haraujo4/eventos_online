@@ -65,14 +65,14 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:-admin123}
       - DB_NAME=${DB_NAME:-events_db}
       - DB_PORT=5432
-      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://eventos.softnexus.com.br}
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
-      - MINIO_USE_SSL=${MINIO_USE_SSL:-false}
+      - MINIO_USE_SSL=${MINIO_USE_SSL:-true}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
-      - MINIO_PUBLIC_HOST=${MINIO_PUBLIC_HOST:-localhost}
-      - MINIO_PUBLIC_PORT=${MINIO_PUBLIC_PORT:-9011}
+      - MINIO_PUBLIC_HOST=${MINIO_PUBLIC_HOST:-arquivos-eventos.softnexus.com.br}
+      - MINIO_PUBLIC_PORT=${MINIO_PUBLIC_PORT:-443}
       - JWT_SECRET=${JWT_SECRET:-your_super_secret_key_123}
     depends_on:
       postgres:
@@ -85,7 +85,10 @@ services:
       - events_net
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=${VITE_API_URL:-https://api-eventos.softnexus.com.br/api}
     container_name: events_frontend
     ports:
       - "8091:80"
