@@ -63,7 +63,7 @@ services:
     ports:
       - "3011:3000"
     environment:
-      - DB_HOST=postgres
+      - DB_HOST=${DB_HOST:-postgres}
       - DB_USER=${DB_USER:-admin}
       - DB_PASSWORD=${DB_PASSWORD:-admin123}
       - DB_NAME=${DB_NAME:-events_db}
@@ -86,7 +86,6 @@ services:
         condition: service_completed_successfully
     networks:
       - events_net
-      - dokploy-network
 
   frontend:
     build:
@@ -101,7 +100,6 @@ services:
       - api
     networks:
       - events_net
-      - dokploy-network
 
 volumes:
   postgres_data:
@@ -110,5 +108,3 @@ volumes:
 networks:
   events_net:
     driver: bridge
-  dokploy-network:
-    external: true
