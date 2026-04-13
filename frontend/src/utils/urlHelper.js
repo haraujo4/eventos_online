@@ -1,5 +1,5 @@
 export const getBaseUrl = () => {
-    return import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3001';
+    return import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3011';
 };
 
 export const getFullImageUrl = (url) => {
