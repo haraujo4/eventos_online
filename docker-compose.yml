@@ -90,6 +90,12 @@ services:
         condition: service_started
       createbuckets:
         condition: service_completed_successfully
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.events-api.rule=Host(`api-eventos.softnexus.com.br`)"
+      - "traefik.http.routers.events-api.entrypoints=websecure"
+      - "traefik.http.routers.events-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.events-api.loadbalancer.server.port=3000"
     networks:
       - events_net
       - dokploy-network
@@ -107,6 +113,12 @@ services:
       - "8080:80"
     depends_on:
       - api
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.events-front.rule=Host(`eventos.softnexus.com.br`)"
+      - "traefik.http.routers.events-front.entrypoints=websecure"
+      - "traefik.http.routers.events-front.tls.certresolver=letsencrypt"
+      - "traefik.http.services.events-front.loadbalancer.server.port=80"
     networks:
       - events_net
       - dokploy-network
