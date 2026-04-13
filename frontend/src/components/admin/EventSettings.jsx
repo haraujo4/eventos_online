@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAdminStore } from '../../store/useAdminStore';
 import { Save, Upload, Trash2, Plus, Shield, Settings, Image, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { getFullImageUrl } from '../../utils/urlHelper';
 
 export function EventSettings() {
     const { eventSettings, authFields, fetchSettings, updateSettings, updateAuthFields, uploadLogo, uploadBackground, removeBackground, resetEvent } = useAdminStore();
@@ -221,7 +222,7 @@ export function EventSettings() {
                                     <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center overflow-hidden">
                                         {eventSettings.logo_url ? (
                                             <img
-                                                src={eventSettings.logo_url.startsWith('http') ? eventSettings.logo_url : `http://localhost:3000${eventSettings.logo_url}`}
+                                                src={getFullImageUrl(eventSettings.logo_url)}
                                                 alt="Logo"
                                                 className="w-full h-full object-contain"
                                             />
@@ -252,7 +253,7 @@ export function EventSettings() {
                                     <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center overflow-hidden">
                                         {eventSettings.background_url ? (
                                             <img
-                                                src={eventSettings.background_url.startsWith('http') ? eventSettings.background_url : `http://localhost:3000${eventSettings.background_url}`}
+                                                src={getFullImageUrl(eventSettings.background_url)}
                                                 alt="Background"
                                                 className="w-full h-full object-cover"
                                             />

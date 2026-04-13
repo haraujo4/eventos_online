@@ -45,10 +45,10 @@ class MinioService {
         
         const protocol = process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http';
         const host = process.env.MINIO_PUBLIC_HOST || process.env.MINIO_ENDPOINT;
-        const port = process.env.MINIO_PORT;
-
+        const port = process.env.MINIO_PUBLIC_PORT || process.env.MINIO_PORT;
+        const portStr = (port === '80' || port === '443') ? '' : `:${port}`;
         
-        return `${protocol}://${host}:${port}/${bucket}/${finalFilename}`;
+        return `${protocol}://${host}${portStr}/${bucket}/${finalFilename}`;
     }
 
     async uploadVideo(filename, buffer) {

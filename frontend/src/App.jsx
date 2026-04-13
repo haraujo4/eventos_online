@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useAdminStore } from './store/useAdminStore';
+import { getFullImageUrl } from './utils/urlHelper';
 
 function App() {
   const { eventSettings, fetchSettings, theme } = useAdminStore();
@@ -36,9 +37,7 @@ function App() {
       link.type = 'image/x-icon';
       link.rel = 'shortcut icon';
 
-      const logoUrl = eventSettings.logo_url.startsWith('http')
-        ? eventSettings.logo_url
-        : `http://localhost:3000${eventSettings.logo_url}`;
+      const logoUrl = getFullImageUrl(eventSettings.logo_url);
 
       link.href = logoUrl;
       document.getElementsByTagName('head')[0].appendChild(link);

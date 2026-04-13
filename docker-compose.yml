@@ -5,7 +5,7 @@ services:
     image: postgres:15-alpine
     container_name: events_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_USER: ${DB_USER:-admin}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-admin123}
@@ -20,12 +20,12 @@ services:
     image: minio/minio
     container_name: events_minio
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9002:9000"
+      - "9003:9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-      MINIO_API_CORS_ALLOW_ORIGIN: "*"
+      MINIO_API_CORS_ALLOW_ORIGIN: ${CORS_ORIGIN:-*}
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
@@ -58,19 +58,21 @@ services:
     build: ./api
     container_name: events_api
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - DB_HOST=postgres
       - DB_USER=${DB_USER:-admin}
       - DB_PASSWORD=${DB_PASSWORD:-admin123}
       - DB_NAME=${DB_NAME:-events_db}
       - DB_PORT=5432
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
-      - MINIO_USE_SSL=false
+      - MINIO_USE_SSL=${MINIO_USE_SSL:-false}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
-      - MINIO_PUBLIC_HOST=localhost
+      - MINIO_PUBLIC_HOST=${MINIO_PUBLIC_HOST:-localhost}
+      - MINIO_PUBLIC_PORT=${MINIO_PUBLIC_PORT:-9002}
       - JWT_SECRET=${JWT_SECRET:-your_super_secret_key_123}
     depends_on:
       postgres:
@@ -86,7 +88,7 @@ services:
     build: ./frontend
     container_name: events_frontend
     ports:
-      - "80:80"
+      - "8081:80"
     depends_on:
       - api
     networks:

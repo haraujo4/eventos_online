@@ -15,6 +15,7 @@ import CommentSection from '../components/CommentSection';
 import { toast } from 'react-toastify';
 
 import { useChatStore } from '../store/useChatStore';
+import { getFullImageUrl } from '../utils/urlHelper';
 
 export default function Player() {
     const { user, logout } = useAuthStore();
@@ -141,7 +142,7 @@ export default function Player() {
                 <div className="flex items-center gap-2">
                     {eventSettings?.logo_url ? (
                         <img
-                            src={eventSettings.logo_url.startsWith('http') ? eventSettings.logo_url : `http://localhost:3000${eventSettings.logo_url}`}
+                            src={getFullImageUrl(eventSettings.logo_url)}
                             alt="Event Logo"
                             className="w-8 h-8 rounded-lg object-cover"
                         />

@@ -15,7 +15,7 @@ export const useChatStore = create((set, get) => ({
     connectSocket: () => {
         if (get().socket) return;
 
-        const socket = io('http://localhost:3000');
+        const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3001');
 
         socket.on('connect', () => {
             set({ isConnected: true });

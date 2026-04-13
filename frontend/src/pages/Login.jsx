@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { Lock, Mail, Loader2, User, ShieldCheck } from 'lucide-react';
 import { formatWithMask } from '../utils/maskUtils';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { toast } from 'react-toastify';
+import { getFullImageUrl } from '../utils/urlHelper';
 
 export default function Login() {
     const [isLogin, setIsLogin] = useState(true);
@@ -22,12 +22,6 @@ export default function Login() {
     const { login, register, verify2FA, openAccess, isLoading, error, requires2fa, authFields, fetchAuthFields, eventSettings } = useAuthStore();
 
     const isOpenMode = eventSettings?.auth_mode === 'open';
-
-    // Helper to get full URL for images
-    const getImageUrl = (url) => {
-        if (!url) return null;
-        return url.startsWith('http') ? url : `http://localhost:3000${url}`;
-    };
 
     useEffect(() => {
         fetchAuthFields();
@@ -155,7 +149,7 @@ export default function Login() {
     return (
         <div
             className="min-h-screen flex items-center justify-center p-4 relative bg-cover bg-center bg-no-repeat transition-all duration-700 bg-gray-50 dark:bg-gray-900"
-            style={eventSettings?.background_url ? { backgroundImage: `url(${getImageUrl(eventSettings.background_url)})` } : {}}
+            style={eventSettings?.background_url ? { backgroundImage: `url(${getFullImageUrl(eventSettings.background_url)})` } : {}}
         >
             {/* Background Overlay */}
             {eventSettings?.background_url && (
@@ -172,7 +166,7 @@ export default function Login() {
                         {eventSettings?.logo_url && eventSettings.logo_url !== '' && (
                             <div className="flex justify-center mb-8">
                                 <img
-                                    src={getImageUrl(eventSettings.logo_url)}
+                                    src={getFullImageUrl(eventSettings.logo_url)}
                                     alt="Logo"
                                     className="h-20 w-auto object-contain drop-shadow-lg"
                                 />
