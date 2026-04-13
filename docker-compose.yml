@@ -5,6 +5,8 @@ services:
     image: postgres:15-alpine
     container_name: events_db
     restart: always
+    env_file:
+      - .env
     ports:
       - "5444:5432"
     environment:
@@ -21,6 +23,8 @@ services:
     image: minio/minio
     container_name: events_minio
     restart: always
+    env_file:
+      - .env
     ports:
       - "9011:9000"
       - "9012:9001"
@@ -60,6 +64,8 @@ services:
     build: ./api
     container_name: events_api
     restart: always
+    env_file:
+      - .env
     ports:
       - "3011:3000"
     environment:
@@ -94,6 +100,8 @@ services:
         - VITE_API_URL=${VITE_API_URL:-https://api-eventos.softnexus.com.br/api}
     container_name: events_frontend
     restart: always
+    env_file:
+      - .env
     ports:
       - "8091:80"
     depends_on:
