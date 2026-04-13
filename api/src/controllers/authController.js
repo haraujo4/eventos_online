@@ -40,6 +40,16 @@ class AuthController {
             res.status(401).json({ message: err.message });
         }
     }
+
+    async openAccess(req, res) {
+        try {
+            const { email, name, customData } = req.body;
+            const result = await this.authService.openAccess(email, name, customData);
+            res.json(result);
+        } catch (err) {
+            res.status(400).json({ message: err.message });
+        }
+    }
 }
 
 module.exports = AuthController;

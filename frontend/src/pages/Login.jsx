@@ -19,7 +19,9 @@ export default function Login() {
     const [twoFactorCode, setTwoFactorCode] = useState('');
 
     const navigate = useNavigate();
-    const { login, register, verify2FA, isLoading, error, requires2fa, authFields, fetchAuthFields, eventSettings } = useAuthStore();
+    const { login, register, verify2FA, openAccess, isLoading, error, requires2fa, authFields, fetchAuthFields, eventSettings } = useAuthStore();
+
+    const isOpenMode = eventSettings?.auth_mode === 'open';
 
     // Helper to get full URL for images
     const getImageUrl = (url) => {
@@ -37,7 +39,14 @@ export default function Login() {
         if (requires2fa) {
             const success = await verify2FA(twoFactorCode);
             if (success) {
-                const user = JSON.parse(localStorage.getItem('user'));
+                navigate('/player');
+            }
+            return;
+        }
+
+        if (isOpenMode) {
+            const success = await openAccess(email, name, customData);
+            if (success) {
                 navigate('/player');
             }
             return;
@@ -170,15 +179,15 @@ export default function Login() {
                             </div>
                         )}
                         <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                            {isLogin ? 'Bem-vindo de Volta' : 'Criar Conta'}
+                            {isOpenMode ? 'Acessar Evento' : (isLogin ? 'Bem-vindo de Volta' : 'Criar Conta')}
                         </h2>
                         <p className="text-gray-600 dark:text-gray-300 mt-2 font-medium">
-                            {isLogin ? 'Faça login para acessar o evento' : 'Cadastre-se para participar do evento'}
+                            {isOpenMode ? 'Identifique-se para entrar no evento' : (isLogin ? 'Faça login para acessar o evento' : 'Cadastre-se para participar do evento')}
                         </p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {!isLogin && (
+                        {(isOpenMode || !isLogin) && (
                             <>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">Nome Completo</label>
@@ -256,20 +265,22 @@ export default function Login() {
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">Senha</label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                <input
-                                    type="password"
-                                    required
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 pl-10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-                                    placeholder="••••••••"
-                                />
+                        {!isOpenMode && (
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">Senha</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                                    <input
+                                        type="password"
+                                        required
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 pl-10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                                        placeholder="••••••••"
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {error && (
                             <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 dark:text-red-400 text-sm text-center">
@@ -285,24 +296,26 @@ export default function Login() {
                             {isLoading ? (
                                 <>
                                     <Loader2 className="h-5 w-5 animate-spin" />
-                                    {isLogin ? 'Entrando...' : 'Cadastrando...'}
+                                    {isOpenMode ? 'Acessando...' : (isLogin ? 'Entrando...' : 'Cadastrando...')}
                                 </>
                             ) : (
-                                isLogin ? 'Entrar' : 'Criar Conta'
+                                isOpenMode ? 'Acessar' : (isLogin ? 'Entrar' : 'Criar Conta')
                             )}
                         </button>
                     </form>
                 </div>
 
-                <div className="bg-white/50 dark:bg-black/20 backdrop-blur-md p-4 text-center text-sm text-gray-600 dark:text-gray-300 border-t border-white/20 dark:border-white/5">
-                    {isLogin ? "Não tem uma conta?" : "Já tem uma conta?"}
-                    <button
-                        onClick={() => setIsLogin(!isLogin)}
-                        className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 ml-2 font-bold focus:outline-none transition-colors"
-                    >
-                        {isLogin ? 'Cadastre-se agora' : 'Entrar'}
-                    </button>
-                </div>
+                {!isOpenMode && (
+                    <div className="bg-white/50 dark:bg-black/20 backdrop-blur-md p-4 text-center text-sm text-gray-600 dark:text-gray-300 border-t border-white/20 dark:border-white/5">
+                        {isLogin ? "Não tem uma conta?" : "Já tem uma conta?"}
+                        <button
+                            onClick={() => setIsLogin(!isLogin)}
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 ml-2 font-bold focus:outline-none transition-colors"
+                        >
+                            {isLogin ? 'Cadastre-se agora' : 'Entrar'}
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

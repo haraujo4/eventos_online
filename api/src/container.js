@@ -5,6 +5,7 @@ const db = require('./config/db');
 const StreamRepository = require('./repositories/streamRepository');
 const UserRepository = require('./repositories/userRepository');
 const ChatRepository = require('./repositories/chatRepository');
+const eventRepository = require('./repositories/eventRepository');
 
 
 const StreamService = require('./services/streamService');
@@ -32,7 +33,7 @@ class Container {
 
         
         this.mailService = new MailService();
-        this.authService = new AuthService(this.userRepository, this.mailService);
+        this.authService = new AuthService(this.userRepository, this.mailService, eventRepository);
         this.userService = new UserService(this.userRepository);
     }
 

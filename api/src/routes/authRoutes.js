@@ -7,5 +7,6 @@ router.post('/login', (req, res) => container.authController.login(req, res));
 router.post('/register', (req, res) => container.authController.register(req, res));
 router.get('/me', authenticate, (req, res) => container.authController.me(req, res));
 router.post('/verify-2fa', (req, res) => container.authController.verify2FA(req, res));
+router.post('/open-access', (req, res) => container.authController.openAccess(req, res));
 
 module.exports = router;

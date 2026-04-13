@@ -210,8 +210,10 @@ const createTables = async () => {
 
       await db.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS stream_id INTEGER REFERENCES streams(id) ON DELETE CASCADE`);
       await db.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT true`);
+      await db.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_highlighted BOOLEAN DEFAULT false`);
       await db.query(`ALTER TABLE event_settings ADD COLUMN IF NOT EXISTS chat_moderated BOOLEAN DEFAULT false`);
       await db.query(`ALTER TABLE event_settings ADD COLUMN IF NOT EXISTS chat_global BOOLEAN DEFAULT true`);
+      await db.query(`ALTER TABLE event_settings ADD COLUMN IF NOT EXISTS chat_enabled BOOLEAN DEFAULT true`);
 
     } catch (e) {
     }

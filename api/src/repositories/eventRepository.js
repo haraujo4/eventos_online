@@ -99,8 +99,15 @@ class EventRepository {
         for (let i = 0; i < fields.length; i++) {
             const field = fields[i];
             await db.query(
-                `INSERT INTO auth_fields (field_name, field_type, required, display_order) VALUES ($1, $2, $3, $4)`,
-                [field.field_name, field.field_type, field.required, i]
+                `INSERT INTO auth_fields (field_name, label, input_type, is_required, options, display_order) VALUES ($1, $2, $3, $4, $5, $6)`,
+                [
+                    field.field_name, 
+                    field.label, 
+                    field.input_type || 'text', 
+                    field.is_required || false, 
+                    field.options ? (typeof field.options === 'string' ? field.options : JSON.stringify(field.options)) : null,
+                    i
+                ]
             );
         }
     }

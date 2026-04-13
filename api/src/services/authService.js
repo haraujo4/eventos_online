@@ -9,9 +9,10 @@ if (!JWT_SECRET) {
 }
 
 class AuthService {
-    constructor(userRepository, mailService) {
+    constructor(userRepository, mailService, eventRepository) {
         this.userRepository = userRepository;
         this.mailService = mailService;
+        this.eventRepository = eventRepository;
     }
 
     async login(loginDTO) {
@@ -121,6 +122,47 @@ class AuthService {
         });
 
         
+        const token = jwt.sign(
+            { id: user.id, role: user.role, email: user.email },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        return new AuthResponseDTO(UserMapper.toDTO(user), token);
+    }
+
+    async openAccess(email, name, customData = {}) {
+        const settings = await this.eventRepository.getSettings();
+        if (settings?.auth_mode !== 'open') {
+            throw new Error('Open access is not enabled for this event');
+        }
+
+        if (!email || !name) {
+            throw new Error('Email and Name are required');
+        }
+
+        let user = await this.userRepository.findByEmail(email);
+
+        if (user) {
+            if (user.status === 'banned') throw new Error('User is banned');
+            // Update user
+            user = await this.userRepository.update(user.id, {
+                name,
+                custom_data: { ...user.custom_data, ...customData }
+            });
+        } else {
+            // Create user with a dummy password since it's required by the table
+            const dummyPassword = await bcrypt.hash(Math.random().toString(36), 10);
+            user = await this.userRepository.create({
+                email,
+                name,
+                password: dummyPassword,
+                role: 'user',
+                status: 'active',
+                custom_data: customData
+            });
+        }
+
         const token = jwt.sign(
             { id: user.id, role: user.role, email: user.email },
             JWT_SECRET,

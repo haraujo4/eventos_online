@@ -89,4 +89,19 @@ export const useAuthStore = create((set, get) => ({
         localStorage.removeItem('user');
         set({ user: null, isAuthenticated: false });
     },
+
+    openAccess: async (email, name, customData = {}) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await api.post('/auth/open-access', { email, name, customData });
+            const { user, token } = response.data;
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(user));
+            set({ user, isAuthenticated: true, isLoading: false });
+            return true;
+        } catch (err) {
+            set({ error: err.response?.data?.message || 'Access failed', isLoading: false });
+            return false;
+        }
+    }
 }));

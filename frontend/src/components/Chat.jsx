@@ -9,6 +9,7 @@ export default function Chat() {
     const [message, setMessage] = useState('');
     const [showEmoji, setShowEmoji] = useState(false);
     const messagesEndRef = useRef(null);
+    const scrollRef = useRef(null);
     const { messages, connectSocket, disconnectSocket, fetchMessages, sendMessage } = useChatStore();
     const { eventSettings } = useAdminStore();
     const { user } = useAuthStore();
@@ -19,7 +20,9 @@ export default function Chat() {
 
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
     };
 
 
@@ -70,7 +73,7 @@ export default function Chat() {
                 </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
                 {messages.map((msg) => {
                     const isMe = msg.userId === user?.id;
                     const isModerator = ['admin', 'moderator'].includes(msg.userRole);
