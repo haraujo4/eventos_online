@@ -92,6 +92,7 @@ services:
         condition: service_completed_successfully
     networks:
       - events_net
+      - dokploy-network
 
   frontend:
     build:
@@ -103,11 +104,12 @@ services:
     env_file:
       - .env
     ports:
-      - "8091:80"
+      - "8080:80"
     depends_on:
       - api
     networks:
       - events_net
+      - dokploy-network
 
 volumes:
   postgres_data:
@@ -116,3 +118,5 @@ volumes:
 networks:
   events_net:
     driver: bridge
+  dokploy-network:
+    external: true
