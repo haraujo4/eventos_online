@@ -110,7 +110,7 @@ services:
     env_file:
       - .env
     ports:
-      - "8080:80"
+      - "8095:80"
     depends_on:
       - api
     labels:
