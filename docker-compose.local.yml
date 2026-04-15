@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: events_db_local
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "5432:5432" # Porta padrão para facilitar o dev local
+    environment:
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin123}
+      POSTGRES_DB: ${DB_NAME:-events_db}
+      TZ: America/Sao_Paulo
+    volumes:
+      - postgres_data_local:/var/lib/postgresql/data
+    networks:
+      - events_net_local
+
+  minio:
+    image: minio/minio
+    container_name: events_minio_local
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "9000:9000" # API padrão
+      - "9001:9001" # Console padrão
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data_local:/data
+    networks:
+      - events_net_local
+
+  createbuckets:
+    image: minio/mc
+    container_name: events_createbuckets_local
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      /usr/bin/mc config host add myminio http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin123};
+      /usr/bin/mc mb myminio/videos || true;
+      /usr/bin/mc mb myminio/thumbnails || true;
+      /usr/bin/mc mb myminio/logos || true;
+      /usr/bin/mc mb myminio/backgrounds || true;
+      /usr/bin/mc anonymous set public myminio/videos;
+      /usr/bin/mc anonymous set public myminio/thumbnails;
+      /usr/bin/mc anonymous set public myminio/logos;
+      /usr/bin/mc anonymous set public myminio/backgrounds;
+      exit 0;
+      "
+    networks:
+      - events_net_local
+
+volumes:
+  postgres_data_local:
+  minio_data_local:
+
+networks:
+  events_net_local:
+    driver: bridge

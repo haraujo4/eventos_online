@@ -31,7 +31,7 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin123
-      MINIO_API_CORS_ALLOW_ORIGIN: https://eventos.softnexus.com.br
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
@@ -44,19 +44,7 @@ services:
     depends_on:
       - minio
     entrypoint: >
-      /bin/sh -c "
-      sleep 5;
-      /usr/bin/mc config host add myminio http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
-      /usr/bin/mc mb myminio/videos || true;
-      /usr/bin/mc mb myminio/thumbnails || true;
-      /usr/bin/mc mb myminio/logos || true;
-      /usr/bin/mc mb myminio/backgrounds || true;
-      /usr/bin/mc anonymous set public myminio/videos;
-      /usr/bin/mc anonymous set public myminio/thumbnails;
-      /usr/bin/mc anonymous set public myminio/logos;
-      /usr/bin/mc anonymous set public myminio/backgrounds;
-      exit 0;
-      "
+      /bin/sh -c " sleep 5; /usr/bin/mc config host add myminio http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin}; /usr/bin/mc mb myminio/videos || true; /usr/bin/mc mb myminio/thumbnails || true; /usr/bin/mc mb myminio/logos || true; /usr/bin/mc mb myminio/backgrounds || true; /usr/bin/mc anonymous set public myminio/videos; /usr/bin/mc anonymous set public myminio/thumbnails; /usr/bin/mc anonymous set public myminio/logos; /usr/bin/mc anonymous set public myminio/backgrounds; exit 0; "
     networks:
       - events_net
 
@@ -74,7 +62,7 @@ services:
       - DB_PASSWORD=admin123
       - DB_NAME=events_db
       - DB_PORT=5432
-      - CORS_ORIGIN=https://eventos.softnexus.com.br
+      - CORS_ORIGIN=*
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
       - MINIO_USE_SSL=true
@@ -93,8 +81,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.events-api.rule=Host(`api-eventos.softnexus.com.br`)"
-      - "traefik.http.routers.events-api.entrypoints=websecure"
-      - "traefik.http.routers.events-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.events-api.loadbalancer.server.port=3000"
     networks:
       - events_net
@@ -116,8 +102,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.events-front.rule=Host(`eventos.softnexus.com.br`)"
-      - "traefik.http.routers.events-front.entrypoints=websecure"
-      - "traefik.http.routers.events-front.tls.certresolver=letsencrypt"
       - "traefik.http.services.events-front.loadbalancer.server.port=80"
     networks:
       - events_net
@@ -126,6 +110,7 @@ services:
 volumes:
   postgres_data:
   minio_data:
+
 
 networks:
   events_net:
