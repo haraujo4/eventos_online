@@ -1,73 +1,55 @@
-const IStreamRepository = require('../interfaces/IStreamRepository');
 const db = require('../config/db');
-const StreamMapper = require('../mappings/StreamMapper');
 
-class StreamRepository extends IStreamRepository {
+class StreamRepository {
     async findAll() {
-        const result = await db.query('SELECT * FROM streams ORDER BY language ASC');
-        return result.rows.map(row => StreamMapper.toDomain(row));
-    }
-
-    async findById(id) {
-        const result = await db.query('SELECT * FROM streams WHERE id = $1', [id]);
-        return StreamMapper.toDomain(result.rows[0]);
+        const result = await db.query('SELECT * FROM media_events ORDER BY created_at DESC');
+        return result.rows;
     }
 
     async create(streamData) {
         const result = await db.query(
-            'INSERT INTO streams (language, url, poster_url, is_active, file_path, type, title, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-            [streamData.language, streamData.url, streamData.posterUrl, true, streamData.filePath, streamData.type, streamData.title, streamData.description]
+            `INSERT INTO streams 
+            (event_id, language, url, type, file_path, is_active, 
+             chat_enabled, chat_moderated, polls_enabled, questions_enabled, comments_enabled) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+            RETURNING *`,
+            [
+                streamData.eventId, streamData.language, streamData.url, streamData.type, streamData.filePath, true,
+                streamData.chat_enabled, streamData.chat_moderated, streamData.polls_enabled, 
+                streamData.questions_enabled, streamData.comments_enabled
+            ]
         );
-        return StreamMapper.toDomain(result.rows[0]);
+        return result.rows[0];
     }
 
     async update(id, streamData) {
-        
-        const fields = [];
-        const values = [];
-        let idx = 1;
-
-        if (streamData.language) { fields.push(`language = $${idx++}`); values.push(streamData.language); }
-        if (streamData.url !== undefined) { fields.push(`url = $${idx++}`); values.push(streamData.url); }
-        if (streamData.posterUrl !== undefined) { fields.push(`poster_url = $${idx++}`); values.push(streamData.posterUrl); }
-        if (streamData.filePath !== undefined) { fields.push(`file_path = $${idx++}`); values.push(streamData.filePath); }
-        if (streamData.type !== undefined) { fields.push(`type = $${idx++}`); values.push(streamData.type); }
-        if (streamData.title !== undefined) { fields.push(`title = $${idx++}`); values.push(streamData.title); }
-        if (streamData.description !== undefined) { fields.push(`description = $${idx++}`); values.push(streamData.description); }
-
-        if (fields.length === 0) return null;
-
-        values.push(id);
         const result = await db.query(
-            `UPDATE streams SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
-            values
+            `UPDATE streams 
+             SET language = $1, url = $2, type = $3, file_path = $4,
+                 chat_enabled = $5, chat_moderated = $6, polls_enabled = $7, 
+                 questions_enabled = $8, comments_enabled = $9
+             WHERE id = $10 
+             RETURNING *`,
+            [
+                streamData.language, streamData.url, streamData.type, streamData.filePath || null,
+                streamData.chat_enabled, streamData.chat_moderated, streamData.polls_enabled, 
+                streamData.questions_enabled, streamData.comments_enabled, id
+            ]
         );
-        return StreamMapper.toDomain(result.rows[0]);
+        return result.rows[0];
     }
 
     async delete(id) {
         await db.query('DELETE FROM streams WHERE id = $1', [id]);
-        return true;
     }
 
-    
-    async getSetting(key) {
-        const result = await db.query('SELECT value FROM settings WHERE key = $1', [key]);
-        if (result.rows.length > 0) {
-            return result.rows[0].value;
-        }
-        return null; 
+    async deleteByEventId(eventId) {
+        await db.query('DELETE FROM streams WHERE event_id = $1', [eventId]);
     }
 
-    async setSetting(key, value) {
-        
-        const result = await db.query(
-            `INSERT INTO settings (key, value) VALUES ($1, $2)
-             ON CONFLICT (key) DO UPDATE SET value = $2
-             RETURNING value`,
-            [key, value] 
-        );
-        return result.rows[0].value;
+    async findByEventId(eventId) {
+        const result = await db.query('SELECT * FROM streams WHERE event_id = $1', [eventId]);
+        return result.rows;
     }
 }
 

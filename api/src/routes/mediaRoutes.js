@@ -8,14 +8,11 @@ const cpUpload = upload.fields([{ name: 'video', maxCount: 1 }, { name: 'poster'
 
 
 router.get('/', (req, res) => container.mediaController.getAll(req, res));
-
-const debugLog = (req, res, next) => {
-    next();
-};
-
-router.post('/', debugLog, authenticate, authorize(['admin']), cpUpload, (req, res) => container.mediaController.create(req, res));
-router.put('/:id', authenticate, authorize(['admin']), cpUpload, (req, res) => container.mediaController.update(req, res));
+router.get('/:id', (req, res) => container.mediaController.getById(req, res));
+router.post('/', authenticate, authorize(['admin']), upload.any(), (req, res) => container.mediaController.create(req, res));
+router.put('/:id', authenticate, authorize(['admin']), upload.any(), (req, res) => container.mediaController.update(req, res));
 router.delete('/:id', authenticate, authorize(['admin']), (req, res) => container.mediaController.delete(req, res));
 router.post('/live', authenticate, authorize(['admin']), (req, res) => container.mediaController.toggleLive(req, res));
+router.patch('/:id/live', authenticate, authorize(['admin']), (req, res) => container.mediaController.toggleEventLive(req, res));
 
 module.exports = router;

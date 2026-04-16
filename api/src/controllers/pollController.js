@@ -27,12 +27,12 @@ class PollController {
 
     async createPoll(req, res) {
         try {
-            const { question, options, streamId } = req.body;
+            const { question, options, streamId, eventId } = req.body;
             if (!question || !options || !options.length) {
                 return res.status(400).json({ error: 'Question and options are required' });
             }
 
-            const poll = await pollRepository.create(question, options, streamId);
+            const poll = await pollRepository.create(question, options, streamId, eventId);
             res.status(201).json(poll);
         } catch (err) {
             console.error(err);

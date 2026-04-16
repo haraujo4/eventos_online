@@ -16,12 +16,7 @@ export function EventSettings() {
         auth_mode: 'standard',
         two_factor_enabled: false,
         allow_registration: true,
-        chat_enabled: true,
-        chat_moderated: false,
-        chat_global: true,
-        polls_enabled: true,
-        comments_enabled: true,
-        questions_enabled: true,
+        midiateca_enabled: false,
         smtp_config: { host: '', port: 587, user: '', pass: '', secure: false }
     });
 
@@ -39,12 +34,7 @@ export function EventSettings() {
                 auth_mode: eventSettings.auth_mode || 'standard',
                 two_factor_enabled: eventSettings.two_factor_enabled || false,
                 allow_registration: eventSettings.allow_registration ?? true,
-                chat_enabled: eventSettings.chat_enabled ?? true,
-                chat_moderated: eventSettings.chat_moderated || false,
-                chat_global: eventSettings.chat_global ?? true,
-                polls_enabled: eventSettings.polls_enabled ?? true,
-                comments_enabled: eventSettings.comments_enabled ?? true,
-                questions_enabled: eventSettings.questions_enabled ?? true,
+                midiateca_enabled: eventSettings.midiateca_enabled ?? false,
                 smtp_config: { ...prev.smtp_config, ...(eventSettings.smtp_config || {}) }
             }));
         }
@@ -76,9 +66,17 @@ export function EventSettings() {
         e.preventDefault();
         setLoading(true);
         try {
-            await updateSettings(settingsForm);
+            // Garantir que não estamos enviando strings vazias para o que já tem valor
+            const finalData = { ...settingsForm };
+            if (!finalData.event_name && eventSettings.event_name) {
+                finalData.event_name = eventSettings.event_name;
+            }
+
+            await updateSettings(finalData);
             toast.success('Configurações salvas com sucesso!');
+            await fetchSettings(); // Recarregar para garantir sincronia
         } catch (error) {
+            console.error(error);
             toast.error('Falha ao salvar configurações');
         } finally {
             setLoading(false);
@@ -216,6 +214,22 @@ export function EventSettings() {
                                 />
                             </div>
 
+                            <div className="flex flex-col justify-center">
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        name="midiateca_enabled"
+                                        checked={settingsForm.midiateca_enabled}
+                                        onChange={handleSettingsChange}
+                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                                    />
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Ativar Midiateca (Portal de Vídeos)</span>
+                                        <span className="text-[11px] text-gray-500 dark:text-gray-400">Torna o portal de vídeos a página inicial do site.</span>
+                                    </div>
+                                </label>
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Logo do Evento</label>
                                 <div className="flex items-center gap-4">
@@ -334,81 +348,6 @@ export function EventSettings() {
                             </div>
                         </div>
 
-                        <div className="border-t border-gray-100 dark:border-gray-700 pt-6">
-                            <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                <Settings className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                                Interação
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <label className="flex items-center gap-3 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        name="chat_enabled"
-                                        checked={settingsForm.chat_enabled}
-                                        onChange={handleSettingsChange}
-                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                                    />
-                                    <span className="text-sm text-gray-700 dark:text-gray-300">Chat ao Vivo</span>
-                                </label>
-
-                                <label className="flex items-center gap-3 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        name="chat_global"
-                                        checked={settingsForm.chat_global}
-                                        onChange={handleSettingsChange}
-                                        disabled={!settingsForm.chat_enabled}
-                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 disabled:opacity-50"
-                                    />
-                                    <span className="text-sm text-gray-700 dark:text-gray-300">Chat Global (Todos os Players)</span>
-                                </label>
-
-                                <label className="flex items-center gap-3 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        name="chat_moderated"
-                                        checked={settingsForm.chat_moderated}
-                                        onChange={handleSettingsChange}
-                                        disabled={!settingsForm.chat_enabled}
-                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 disabled:opacity-50"
-                                    />
-                                    <span className="text-sm text-gray-700 dark:text-gray-300">Chat Moderado</span>
-                                </label>
-
-                                <label className="flex items-center gap-3 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        name="polls_enabled"
-                                        checked={settingsForm.polls_enabled}
-                                        onChange={handleSettingsChange}
-                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                                    />
-                                    <span className="text-sm text-gray-700 dark:text-gray-300">Habilitar Enquetes</span>
-                                </label>
-
-                                <label className="flex items-center gap-3 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        name="comments_enabled"
-                                        checked={settingsForm.comments_enabled}
-                                        onChange={handleSettingsChange}
-                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                                    />
-                                    <span className="text-sm text-gray-700 dark:text-gray-300">Habilitar Comentários</span>
-                                </label>
-
-                                <label className="flex items-center gap-3 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        name="questions_enabled"
-                                        checked={settingsForm.questions_enabled}
-                                        onChange={handleSettingsChange}
-                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                                    />
-                                    <span className="text-sm text-gray-700 dark:text-gray-300">Habilitar Perguntas</span>
-                                </label>
-                            </div>
-                        </div>
 
                         <div className="border-t border-gray-100 dark:border-gray-700 pt-6">
                             <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Configuração SMTP (Para E-mails)</h4>

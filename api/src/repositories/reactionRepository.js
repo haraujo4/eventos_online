@@ -56,10 +56,12 @@ class ReactionRepository {
                 u.name as user_name,
                 u.email as user_email,
                 s.title as stream_title,
-                s.language as stream_language
+                s.language as stream_language,
+                e.title as event_title
             FROM stream_reactions r
             JOIN users u ON r.user_id = u.id
             LEFT JOIN streams s ON r.stream_id = s.id
+            LEFT JOIN media_events e ON s.event_id = e.id
             ORDER BY r.created_at DESC;
         `;
         const result = await db.query(query);

@@ -1,4 +1,4 @@
-const { CreateStreamDTO, UpdateStreamDTO } = require('../dtos/StreamDTOs');
+const { MediaEventResponseDTO, CreateMediaEventDTO } = require('../dtos/MediaDTOs');
 
 class MediaController {
     constructor(streamService) {
@@ -7,64 +7,73 @@ class MediaController {
 
     async getAll(req, res) {
         try {
-            const data = await this.streamService.getAllStreams();
+            const events = await this.streamService.getAllEvents();
+            const eventRepository = require('../repositories/eventRepository');
+            const settings = await eventRepository.getSettings();
             
-            
-            
-            
-            res.json(data);
+            const dtos = events.map(e => new MediaEventResponseDTO(e));
+            res.json({
+                events: dtos,
+                isLive: settings?.is_live || false
+            });
         } catch (err) {
-            res.status(500).json({ message: err.message });
+            console.error(err);
+            res.status(500).json({ message: 'Erro ao buscar mídias' });
+        }
+    }
+
+    async getById(req, res) {
+        try {
+            const { id } = req.params;
+            const event = await this.streamService.getEventById(id);
+            if (!event) return res.status(404).json({ message: 'Evento não encontrado' });
+            res.json(new MediaEventResponseDTO(event));
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ message: 'Erro ao buscar detalhes do evento' });
         }
     }
 
     async create(req, res) {
         try {
+            const filesArray = req.files || [];
+            const filesMap = {};
+            let posterFile = null;
 
-            const files = req.files || {};
-            const videoFile = files.video ? files.video[0] : null;
-            const posterFile = files.poster ? files.poster[0] : null;
-
+            // Organizar arquivos do upload.any()
+            filesArray.forEach(file => {
+                if (file.fieldname === 'poster') {
+                    posterFile = file;
+                } else {
+                    // Agrupar arquivos de vídeo no formato que o serviço espera (video_0, video_1, etc)
+                    if (!filesMap[file.fieldname]) filesMap[file.fieldname] = [];
+                    filesMap[file.fieldname].push(file);
+                }
+            });
             
-            const createStreamDTO = new CreateStreamDTO(
-                req.body.language,
-                req.body.url,
-                req.body.poster_url,
-                req.body.type,
-                req.body.title,
-                req.body.description
-            );
-
-            const stream = await this.streamService.createStream(createStreamDTO, videoFile, posterFile);
-            res.status(201).json(stream);
+            const eventDTO = new CreateMediaEventDTO(req.body);
+            const event = await this.streamService.createEvent(eventDTO, posterFile, filesMap);
+            res.status(201).json(new MediaEventResponseDTO(event));
         } catch (err) {
-            console.error("DEBUG: createStream Error:", err);
-            console.error(err.stack);
-            res.status(400).json({ message: err.message, stack: err.stack });
+            console.error('DEBUG: createEvent Error:', err);
+            res.status(400).json({ message: err.message });
         }
     }
 
     async update(req, res) {
         try {
             const { id } = req.params;
-            const files = req.files || {};
-            const videoFile = files.video ? files.video[0] : null;
-            const posterFile = files.poster ? files.poster[0] : null;
+            const filesArray = req.files || [];
+            let posterFile = null;
 
-            const updateStreamDTO = new UpdateStreamDTO(
-                req.body.language,
-                req.body.url,
-                req.body.poster_url,
-                req.body.type,
-                req.body.title,
-                req.body.description
-            );
-
-            const stream = await this.streamService.updateStream(id, updateStreamDTO, videoFile, posterFile);
-            if (!stream) {
-                return res.status(404).json({ message: 'Stream not found' });
-            }
-            res.json(stream);
+            filesArray.forEach(file => {
+                if (file.fieldname === 'poster') posterFile = file;
+            });
+            
+            const eventDTO = new CreateMediaEventDTO(req.body);
+            const event = await this.streamService.updateEvent(id, eventDTO, posterFile);
+            
+            res.json(new MediaEventResponseDTO(event));
         } catch (err) {
             console.error(err);
             res.status(400).json({ message: err.message });
@@ -74,20 +83,35 @@ class MediaController {
     async delete(req, res) {
         try {
             const { id } = req.params;
-            await this.streamService.deleteStream(id);
+            await this.streamService.deleteEvent(id);
             res.status(204).send();
         } catch (err) {
-            res.status(500).json({ message: err.message });
+            console.error(err);
+            res.status(500).json({ message: 'Erro ao deletar mídia' });
         }
     }
 
     async toggleLive(req, res) {
         try {
-            const { isLive } = req.body;
-            const status = await this.streamService.setLiveStatus(isLive);
-            res.json({ isLive: status });
+            const { is_live } = req.body;
+            const db = require('../config/db');
+            await db.query('UPDATE event_settings SET is_live = $1', [is_live]);
+            res.json({ success: true, isLive: is_live });
         } catch (err) {
-            res.status(500).json({ message: err.message });
+            console.error(err);
+            res.status(500).json({ message: 'Erro ao alternar modo ao vivo' });
+        }
+    }
+
+    async toggleEventLive(req, res) {
+        try {
+            const { id } = req.params;
+            const { is_live } = req.body;
+            const event = await this.streamService.toggleEventLive(id, is_live);
+            res.json(new MediaEventResponseDTO(event));
+        } catch (err) {
+            console.error(err);
+            res.status(400).json({ message: err.message });
         }
     }
 }

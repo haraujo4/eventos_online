@@ -1,18 +1,14 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
     container_name: events_db_local
     restart: always
-    env_file:
-      - .env
     ports:
-      - "5432:5432" # Porta padrão para facilitar o dev local
+      - "5432:5432"
     environment:
-      POSTGRES_USER: ${DB_USER:-admin}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin123}
-      POSTGRES_DB: ${DB_NAME:-events_db}
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: events_db
       TZ: America/Sao_Paulo
     volumes:
       - postgres_data_local:/var/lib/postgresql/data
@@ -23,14 +19,12 @@ services:
     image: minio/minio
     container_name: events_minio_local
     restart: always
-    env_file:
-      - .env
     ports:
-      - "9000:9000" # API padrão
-      - "9001:9001" # Console padrão
+      - "9000:9000"
+      - "9001:9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
       MINIO_API_CORS_ALLOW_ORIGIN: "*"
     command: server /data --console-address ":9001"
     volumes:
@@ -43,20 +37,56 @@ services:
     container_name: events_createbuckets_local
     depends_on:
       - minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
     entrypoint: >
-      /bin/sh -c "
-      sleep 5;
-      /usr/bin/mc config host add myminio http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin123};
-      /usr/bin/mc mb myminio/videos || true;
-      /usr/bin/mc mb myminio/thumbnails || true;
-      /usr/bin/mc mb myminio/logos || true;
-      /usr/bin/mc mb myminio/backgrounds || true;
-      /usr/bin/mc anonymous set public myminio/videos;
-      /usr/bin/mc anonymous set public myminio/thumbnails;
-      /usr/bin/mc anonymous set public myminio/logos;
-      /usr/bin/mc anonymous set public myminio/backgrounds;
-      exit 0;
-      "
+      /bin/sh -c " sleep 5; /usr/bin/mc config host add myminio http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}; /usr/bin/mc mb myminio/videos || true; /usr/bin/mc mb myminio/thumbnails || true; /usr/bin/mc mb myminio/logos || true; /usr/bin/mc mb myminio/backgrounds || true; /usr/bin/mc anonymous set public myminio/videos; /usr/bin/mc anonymous set public myminio/thumbnails; /usr/bin/mc anonymous set public myminio/logos; /usr/bin/mc anonymous set public myminio/backgrounds; exit 0; "
+    networks:
+      - events_net_local
+
+  api:
+    build: ./api
+    container_name: events_api_local
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=postgres
+      - DB_USER=admin
+      - DB_PASSWORD=admin123
+      - DB_NAME=events_db
+      - DB_PORT=5432
+      - CORS_ORIGIN=*
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_USE_SSL=false
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin123
+      - MINIO_PUBLIC_HOST=localhost
+      - MINIO_PUBLIC_PORT=9000
+      - JWT_SECRET=softnexus_segredo_2026
+    depends_on:
+      postgres:
+        condition: service_started
+      minio:
+        condition: service_started
+      createbuckets:
+        condition: service_completed_successfully
+    networks:
+      - events_net_local
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://localhost:3000/api
+    container_name: events_frontend_local
+    restart: always
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
     networks:
       - events_net_local
 

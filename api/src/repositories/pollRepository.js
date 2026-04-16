@@ -1,12 +1,12 @@
 const db = require('../config/db');
 
 class PollRepository {
-    async create(question, options, streamId) {
+    async create(question, options, streamId, eventId) {
         await db.query('BEGIN');
         try {
             const pollResult = await db.query(
-                'INSERT INTO polls (question, stream_id) VALUES ($1, $2) RETURNING *',
-                [question, streamId]
+                'INSERT INTO polls (question, stream_id, event_id) VALUES ($1, $2, $3) RETURNING *',
+                [question, streamId, eventId]
             );
             const poll = pollResult.rows[0];
 
@@ -27,25 +27,32 @@ class PollRepository {
 
     async getActive(streamId) {
         const useStreamId = (streamId && streamId !== '' && streamId !== 'null') ? streamId : null;
+        if (!useStreamId) return null;
+
         const query = `
             SELECT p.*, 
                 json_agg(json_build_object('id', o.id, 'text', o.option_text)) as options
             FROM polls p
             LEFT JOIN poll_options o ON p.id = o.poll_id
-            WHERE p.is_active = true AND ${useStreamId ? '(p.stream_id = $1 OR p.stream_id IS NULL)' : 'p.stream_id IS NULL'}
+            WHERE p.is_active = true 
+            AND (
+                p.stream_id = $1 
+                OR (p.stream_id IS NULL AND p.event_id = (SELECT event_id FROM streams WHERE id = $1))
+            )
             GROUP BY p.id
             ORDER BY p.stream_id ASC NULLS LAST, p.created_at DESC
             LIMIT 1;
         `;
-        const result = await db.query(query, useStreamId ? [useStreamId] : []);
+        const result = await db.query(query, [useStreamId]);
         return result.rows[0];
     }
 
     async getAll() {
         const query = `
-            SELECT p.*, s.language as stream_language 
+            SELECT p.*, s.language as stream_language, e.title as event_title
             FROM polls p 
             LEFT JOIN streams s ON p.stream_id = s.id 
+            LEFT JOIN media_events e ON p.event_id = e.id
             ORDER BY p.created_at DESC
         `;
         const result = await db.query(query);
@@ -114,12 +121,14 @@ class PollRepository {
                 p.question as poll_question,
                 po.option_text as choice_text,
                 s.language as stream_language,
-                s.title as stream_title
+                s.title as stream_title,
+                e.title as event_title
             FROM poll_votes pv
             JOIN users u ON pv.user_id = u.id
             JOIN polls p ON pv.poll_id = p.id
             JOIN poll_options po ON pv.option_id = po.id
             LEFT JOIN streams s ON p.stream_id = s.id
+            LEFT JOIN media_events e ON p.event_id = e.id
             ORDER BY pv.created_at DESC;
         `;
         const result = await db.query(query);
@@ -129,11 +138,12 @@ class PollRepository {
     async deactivateAll(streamId) {
         const useStreamId = (streamId && streamId !== '' && streamId !== 'null') ? streamId : null;
         if (useStreamId) {
-            // Deactivate this stream's polls AND global polls to avoid clashing
-            await db.query('UPDATE polls SET is_active = false WHERE stream_id = $1 OR stream_id IS NULL', [useStreamId]);
-        } else {
-            // Deactivate EVERYTHING if activating a global poll
-            await db.query('UPDATE polls SET is_active = false');
+            // Desativar apenas para o evento deste stream
+            const eventRes = await db.query('SELECT event_id FROM streams WHERE id = $1', [useStreamId]);
+            const eventId = eventRes.rows[0]?.event_id;
+            if (eventId) {
+                await db.query('UPDATE polls SET is_active = false WHERE event_id = $1', [eventId]);
+            }
         }
     }
 

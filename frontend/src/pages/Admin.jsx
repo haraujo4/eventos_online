@@ -18,7 +18,10 @@ export default function Admin() {
     const { user, logout } = useAuthStore();
     const [activeTab, setActiveTab] = useState(user?.role === 'moderator' ? 'chat' : 'dashboard');
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    const { connectSocket, disconnectSocket, fetchMediaSettings, theme, toggleTheme } = useAdminStore();
+    const { 
+        connectSocket, disconnectSocket, fetchMediaSettings, 
+        theme, toggleTheme, mediaSettings 
+    } = useAdminStore();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -118,7 +121,17 @@ export default function Admin() {
                         {theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}
                     </button>
                     <button
-                        onClick={() => navigate('/player')}
+                        onClick={() => {
+                            const featuredEvent = mediaSettings.streams.find(e => e.is_featured);
+                            if (featuredEvent) {
+                                navigate(`/player?id=${featuredEvent.id}`);
+                            } else if (mediaSettings.streams.length > 0) {
+                                // Fallback to first event if no featured
+                                navigate(`/player?id=${mediaSettings.streams[0].id}`);
+                            } else {
+                                navigate('/');
+                            }
+                        }}
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                         <Play className="w-5 h-5" />

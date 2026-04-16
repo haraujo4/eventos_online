@@ -25,7 +25,7 @@ export default function QuestionBanner({ streamId }) {
         };
     }, [socket, streamId]);
 
-    if (!eventSettings?.questions_enabled || !currentQuestion) return null;
+    if (!currentQuestion) return null;
 
     return (
         <div className="absolute bottom-4 sm:bottom-16 left-1/2 -translate-x-1/2 z-[100] w-[95%] sm:w-[90%] max-w-2xl transform transition-all duration-500 animate-in slide-in-from-bottom-8">

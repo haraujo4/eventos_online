@@ -9,36 +9,41 @@ class ChatService {
         this.io = io;
     }
 
-    async getRecentMessages(streamId, isAdmin = false) {
-        const settingsRes = await db.query('SELECT chat_global FROM event_settings LIMIT 1');
-        const isGlobal = settingsRes.rows[0]?.chat_global;
+    async getRecentMessages(streamId, isAdmin = false, requesterId = null) {
+        // Buscar se o chat deste evento é global ou restrito
+        const settingsRes = await db.query(`
+            SELECT e.chat_global 
+            FROM media_events e
+            JOIN streams s ON e.id = s.event_id
+            WHERE s.id = $1
+        `, [streamId]);
+        const isGlobal = settingsRes.rows[0]?.chat_global ?? true;
 
-        // If admin, includeAllStreams = true
-        const messages = await this.chatRepository.findRecent(streamId, isGlobal, 50, isAdmin);
+        // Pass requesterId to repository
+        const messages = await this.chatRepository.findRecent(streamId, isGlobal, 50, isAdmin, requesterId);
         return messages.map(msg => ChatMapper.toDTO(msg));
     }
 
-    async getPendingMessages() {
-        const messages = await this.chatRepository.findPending();
+    async getPendingMessages(eventId = null) {
+        const messages = await this.chatRepository.findPending(eventId);
         return messages.map(msg => ChatMapper.toDTO(msg));
     }
 
-    async saveAndBroadcast(userId, userName, userRole, content) {
-
-
-    }
-
-    async exportChat() {
-        const messages = await this.chatRepository.findAll();
+    async exportChat(eventId = null) {
+        const messages = await this.chatRepository.findAll(eventId);
         const xlsx = require('xlsx');
 
         const data = messages.map(msg => ({
             ID: msg.id,
-            Date: msg.createdAt,
+            Date: new Date(msg.createdAt).toLocaleString('pt-BR'),
             User: msg.userName,
+            Email: msg.userEmail || 'N/A',
             Role: msg.userRole,
+            Event: msg.eventTitle || 'N/A',
+            Language: msg.streamLanguage || 'N/A',
             Content: msg.content,
             Highlighted: msg.isHighlighted ? 'Yes' : 'No',
+            Approved: msg.isApproved ? 'Yes' : 'No',
             Deleted: msg.isDeleted ? 'Yes' : 'No'
         }));
 
@@ -57,27 +62,36 @@ class ChatService {
         }
 
 
-        const settingsRes = await db.query('SELECT chat_moderated, chat_global FROM event_settings LIMIT 1');
+        const settingsRes = await db.query(`
+            SELECT e.chat_moderated, e.chat_global, s.chat_moderated as stream_moderated
+            FROM media_events e
+            JOIN streams s ON e.id = s.event_id
+            WHERE s.id = $1
+        `, [streamId]);
+        
         const settings = settingsRes.rows[0] || {};
-        const isModerated = settings.chat_moderated;
-        const isGlobal = settings.chat_global; // This should be boolean
-        const isAdmin = userRole === 'admin' || userRole === 'moderator';
+        const isGlobal = settings.chat_global ?? true;
+        
+        const isEventModerated = settings.chat_moderated === true;
+        const isStreamModerated = settings.stream_moderated === true;
+        
+        // Se estiver moderado no evento OU no stream, ativa.
+        const isModerated = isEventModerated || isStreamModerated;
+        const isAdmin = ['admin', 'moderator'].includes(userRole);
+
+        console.log(`DEBUG: Chat Message from ${userName} (${userRole}) - streamId: ${streamId} - eventMod: ${isEventModerated} - streamMod: ${isStreamModerated} - isModerated: ${isModerated} - isAdmin: ${isAdmin}`);
 
 
         if (!content || content.trim() === '') return null;
 
-        // If Global Chat is enabled, we treat it as streamId = null (Global Room)
-        // Ensure streamId is actually null if isGlobal is true
-        const finalStreamId = isGlobal ? null : streamId;
+        // Sempre salvar o streamId original para saber a qual evento a mensagem pertence
+        const finalStreamId = streamId;
 
-        // If Moderated and not admin, message is pending
-        // Note: isApproved must be explicit boolean
+        // Se for Moderado e não for admin, a mensagem fica pendente
         const isApproved = !isModerated || isAdmin;
 
 
-        const dto = new CreateMessageDTO(userId, userName, userRole, content);
-        dto.streamId = finalStreamId;
-        dto.isApproved = isApproved;
+        const dto = new CreateMessageDTO(userId, userName, userRole, content, finalStreamId, isApproved);
 
 
         const badWords = ['bad', 'offensive', 'spam'];
@@ -90,10 +104,14 @@ class ChatService {
         const savedMessage = await this.chatRepository.create(dto);
         const responseDTO = ChatMapper.toDTO(savedMessage);
 
+        // Determinar a sala de destino
+        const room = isGlobal ? `event_${(await db.query('SELECT event_id FROM streams WHERE id = $1', [streamId])).rows[0]?.event_id}` : `stream_${streamId}`;
+
         if (isApproved) {
-            this.io.emit('chat:message', responseDTO);
+            // Se aprovada, envia para a sala do evento/stream
+            this.io.to(room).emit('chat:message', responseDTO);
         } else {
-            // Notify admins of pending message
+            // Se pendente, avisa apenas os admins (emit global ou sala de admins se houver)
             this.io.emit('chat:pending', responseDTO);
         }
 
@@ -104,9 +122,26 @@ class ChatService {
         const approvedMsg = await this.chatRepository.approve(id);
         if (approvedMsg) {
             const dto = ChatMapper.toDTO(approvedMsg);
-            this.io.emit('chat:message', dto);
-            // Optionally emit to remove from pending list if we have one
-            this.io.emit('chat:approved', { id });
+            
+            // Buscar as configurações do evento para este stream
+            const settingsRes = await db.query(`
+                SELECT e.chat_global 
+                FROM media_events e
+                JOIN streams s ON e.id = s.event_id
+                WHERE s.id = $1
+            `, [approvedMsg.stream_id]);
+            const isGlobal = settingsRes.rows[0]?.chat_global ?? true;
+            
+            // Buscar o eventId deste stream
+            const streamRes = await db.query('SELECT event_id FROM streams WHERE id = $1', [approvedMsg.stream_id]);
+            const eventId = streamRes.rows[0]?.event_id;
+
+            const room = isGlobal ? `event_${eventId}` : `stream_${approvedMsg.stream_id}`;
+
+            // Avisar a todos na sala que há uma nova mensagem aprovada
+            this.io.to(room).emit('chat:message', dto);
+            // Avisar especificamente os moderadores para remover da lista pendente
+            this.io.emit('chat:approved', dto);
         }
         return approvedMsg;
     }

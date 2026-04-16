@@ -15,7 +15,9 @@ class ChatMapper {
             dbRow.is_highlighted,
             dbRow.stream_id,
             dbRow.is_approved,
-            dbRow.stream_title || dbRow.stream_language || (dbRow.stream_id ? 'Unknown Stream' : 'Global')
+            dbRow.stream_language || (dbRow.stream_id ? 'Unknown Stream' : 'Global'),
+            dbRow.event_title,
+            dbRow.user_email
         );
     }
 

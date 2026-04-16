@@ -7,6 +7,7 @@ console.log('PORT:', process.env.PORT || 3000);
 const http = require('http');
 const { Server } = require('socket.io');
 const app = require('./app');
+const db = require('./config/db');
 
 const PORT = process.env.PORT || 3000;
 
@@ -35,6 +36,20 @@ questionController.setSocket(io);
 eventController.setSocket(io);
 
 io.on('connection', (socket) => {
+    socket.on('join:room', ({ streamId }) => {
+        if (!streamId) return;
+        // Entrar na sala específica do stream/idioma
+        socket.join(`stream_${streamId}`);
+        
+        // Também entrar na sala do EVENTO para suportar Chat Global por Evento
+        db.query('SELECT event_id FROM streams WHERE id = $1', [streamId])
+            .then(res => {
+                if (res.rows[0]) {
+                    socket.join(`event_${res.rows[0].event_id}`);
+                }
+            }).catch(err => console.error('Error joining event room:', err));
+    });
+
     socket.on('chat:message', async (msg) => {
         try {
             const container = require('./container');
@@ -48,6 +63,10 @@ io.on('connection', (socket) => {
         } catch (err) {
             console.error('Error handling chat message:', err);
         }
+    });
+
+    socket.on('disconnect', () => {
+        // Socket.io limpa as salas automaticamente
     });
 });
 

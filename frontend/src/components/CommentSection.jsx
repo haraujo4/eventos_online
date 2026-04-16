@@ -13,7 +13,7 @@ const EMOJI_MAP = {
     angry: { icon: Angry, label: 'Bravo', color: 'text-red-700' },
 };
 
-export default function CommentSection({ streamId }) {
+export default function CommentSection({ streamId, eventId, isEnabled = true }) {
     const { socket, eventSettings } = useAdminStore();
     const { user } = useAuthStore();
     const [comments, setComments] = useState([]);
@@ -65,7 +65,7 @@ export default function CommentSection({ streamId }) {
 
         setIsSubmitting(true);
         try {
-            await api.post('/comments', { streamId, content: newComment });
+            await api.post('/comments', { streamId, content: newComment, eventId });
             setNewComment('');
             setShowSuccessModal(true);
         } catch (err) {
@@ -83,39 +83,46 @@ export default function CommentSection({ streamId }) {
         }
     };
 
-    if (!eventSettings?.comments_enabled) return null;
+    // If disabled AND no comments to show, hide the whole section
+    if (!isEnabled && comments.length === 0) return null;
 
     return (
-        <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
-            <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+        <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6 animate-in fade-in duration-500">
+            <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
                 Comentários
                 <span className="text-xs sm:text-sm font-normal text-gray-500">({comments.length})</span>
             </h3>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="flex gap-3 sm:gap-4">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs sm:text-base font-bold flex-shrink-0">
-                    {user?.name?.charAt(0) || 'U'}
-                </div>
-                <div className="flex-1 space-y-2">
-                    <textarea
-                        value={newComment}
-                        onChange={e => setNewComment(e.target.value)}
-                        placeholder="Deixe seu comentário..."
-                        className="w-full bg-transparent border-b border-gray-200 dark:border-gray-700 focus:border-blue-500 transition-colors py-1 resize-none h-10 focus:h-20 outline-none"
-                    />
-                    <div className="flex justify-end">
-                        <button
-                            type="submit"
-                            disabled={!newComment.trim() || isSubmitting}
-                            className="bg-blue-600 text-white px-4 py-1.5 rounded-full text-sm font-bold disabled:opacity-50 flex items-center gap-2"
-                        >
-                            <Send className="w-3.5 h-3.5" />
-                            Comentar
-                        </button>
+            {/* Form - Only show if enabled */}
+            {isEnabled ? (
+                <form onSubmit={handleSubmit} className="flex gap-3 sm:gap-4 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 transition-all focus-within:ring-2 focus-within:ring-blue-500/20">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs sm:text-base font-bold flex-shrink-0 shadow-lg">
+                        {user?.name?.charAt(0) || 'U'}
                     </div>
+                    <div className="flex-1 space-y-2">
+                        <textarea
+                            value={newComment}
+                            onChange={e => setNewComment(e.target.value)}
+                            placeholder="Deixe seu comentário..."
+                            className="w-full bg-transparent border-none focus:ring-0 text-sm sm:text-base text-gray-900 dark:text-white transition-all py-1 resize-none h-12 outline-none"
+                        />
+                        <div className="flex justify-end pt-2 border-t border-gray-200 dark:border-gray-700">
+                            <button
+                                type="submit"
+                                disabled={!newComment.trim() || isSubmitting}
+                                className="bg-blue-600 text-white px-6 py-2 rounded-full text-xs sm:text-sm font-black uppercase tracking-widest disabled:opacity-30 flex items-center gap-2 hover:bg-blue-700 active:scale-95 transition-all shadow-md"
+                            >
+                                <Send className="w-3.5 h-3.5" />
+                                Publicar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            ) : (
+                <div className="p-4 bg-gray-100 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 text-center">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest italic">Os comentários para este evento foram encerrados.</p>
                 </div>
-            </form>
+            )}
 
             {/* List */}
             <div className="space-y-6 pt-4">

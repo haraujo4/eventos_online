@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { Lock, Mail, Loader2, User, ShieldCheck } from 'lucide-react';
 import { formatWithMask } from '../utils/maskUtils';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { getFullImageUrl } from '../utils/urlHelper';
+import { toast } from 'react-toastify';
 
 export default function Login() {
     const [isLogin, setIsLogin] = useState(true);
@@ -19,9 +20,18 @@ export default function Login() {
     const [twoFactorCode, setTwoFactorCode] = useState('');
 
     const navigate = useNavigate();
-    const { login, register, verify2FA, openAccess, isLoading, error, requires2fa, authFields, fetchAuthFields, eventSettings } = useAuthStore();
+    const location = useLocation();
+    const [searchParams] = useSearchParams();
+    const { user, login, register, verify2FA, openAccess, isLoading, error, requires2fa, authFields, fetchAuthFields, eventSettings } = useAuthStore();
 
     const isOpenMode = eventSettings?.auth_mode === 'open';
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (user && !requires2fa) {
+            navigate('/', { replace: true });
+        }
+    }, [user, requires2fa, navigate]);
 
     useEffect(() => {
         fetchAuthFields();
@@ -30,10 +40,14 @@ export default function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        const from = location.state?.from?.pathname + (location.state?.from?.search || '') || 
+                     searchParams.get('redirectTo') || 
+                     '/';
+
         if (requires2fa) {
             const success = await verify2FA(twoFactorCode);
             if (success) {
-                navigate('/player');
+                navigate(from, { replace: true });
             }
             return;
         }
@@ -41,7 +55,7 @@ export default function Login() {
         if (isOpenMode) {
             const success = await openAccess(email, name, customData);
             if (success) {
-                navigate('/player');
+                navigate(from, { replace: true });
             }
             return;
         }
@@ -49,13 +63,19 @@ export default function Login() {
         if (isLogin) {
             const result = await login(email, password);
             if (result && result.success) {
-                navigate('/player');
+                navigate(from, { replace: true });
             }
 
         } else {
             const success = await register(name, email, password, customData);
             if (success) {
                 setIsLogin(true);
+                // Preserve the redirect in the URL when switching to login view manually or via register success
+                const currentRedirect = searchParams.get('redirectTo');
+                if (currentRedirect) {
+                    navigate(`/login?redirectTo=${encodeURIComponent(currentRedirect)}`, { replace: true });
+                }
+                
                 toast.success('Cadastro realizado com sucesso! Por favor faça login.', {
                     position: "top-center",
                     autoClose: 5000

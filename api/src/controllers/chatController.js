@@ -9,7 +9,7 @@ class ChatController {
             const { user } = req;
             const isAdmin = user && (user.role === 'admin' || user.role === 'moderator') && includeAll === 'true';
 
-            const messages = await this.chatService.getRecentMessages(streamId, isAdmin);
+            const messages = await this.chatService.getRecentMessages(streamId, isAdmin, user?.id);
             res.json(messages);
         } catch (err) {
             res.status(500).json({ message: err.message });
@@ -18,7 +18,8 @@ class ChatController {
 
     async getPending(req, res) {
         try {
-            const messages = await this.chatService.getPendingMessages();
+            const { eventId } = req.query;
+            const messages = await this.chatService.getPendingMessages(eventId);
             res.json(messages);
         } catch (err) {
             res.status(500).json({ message: err.message });
@@ -48,7 +49,8 @@ class ChatController {
 
     async export(req, res) {
         try {
-            const buffer = await this.chatService.exportChat();
+            const { eventId } = req.query;
+            const buffer = await this.chatService.exportChat(eventId);
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             res.setHeader('Content-Disposition', 'attachment; filename=chat_history.xlsx');
             res.send(buffer);

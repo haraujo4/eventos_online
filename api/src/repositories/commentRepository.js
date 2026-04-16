@@ -1,13 +1,13 @@
 const db = require('../config/db');
 
 class CommentRepository {
-    async create(userId, streamId, content) {
+    async create(userId, streamId, content, eventId) {
         const query = `
-            INSERT INTO comments (user_id, stream_id, content)
-            VALUES ($1, $2, $3)
+            INSERT INTO comments (user_id, stream_id, content, event_id)
+            VALUES ($1, $2, $3, $4)
             RETURNING *;
         `;
-        const result = await db.query(query, [userId, streamId, content]);
+        const result = await db.query(query, [userId, streamId, content, eventId]);
         return result.rows[0];
     }
 
@@ -30,10 +30,11 @@ class CommentRepository {
 
     async getAllPending() {
         const query = `
-            SELECT c.*, u.name as user_name, u.email as user_email, s.title as stream_title
+            SELECT c.*, u.name as user_name, u.email as user_email, s.language as stream_language, e.title as event_title
             FROM comments c
             JOIN users u ON c.user_id = u.id
             LEFT JOIN streams s ON c.stream_id = s.id
+            LEFT JOIN media_events e ON c.event_id = e.id
             WHERE c.is_approved = false
             ORDER BY c.created_at DESC;
         `;
@@ -43,10 +44,11 @@ class CommentRepository {
 
     async getAllApproved() {
         const query = `
-            SELECT c.*, u.name as user_name, u.email as user_email, s.title as stream_title
+            SELECT c.*, u.name as user_name, u.email as user_email, s.language as stream_language, e.title as event_title
             FROM comments c
             JOIN users u ON c.user_id = u.id
             LEFT JOIN streams s ON c.stream_id = s.id
+            LEFT JOIN media_events e ON c.event_id = e.id
             WHERE c.is_approved = true
             ORDER BY c.created_at DESC;
         `;

@@ -6,7 +6,8 @@ class StatsController {
 
     async getStats(req, res) {
         try {
-            const stats = await this.statsService.getDashboardStats();
+            const { eventId } = req.query;
+            const stats = await this.statsService.getDashboardStats(eventId);
             res.json(stats);
         } catch (err) {
             res.status(500).json({ message: err.message });
@@ -15,12 +16,23 @@ class StatsController {
 
     async getHistory(req, res) {
         try {
-            const { interval } = req.query; 
-            const history = await this.analyticsService.getHistory(interval);
+            const { interval, eventId } = req.query; 
+            const history = await this.analyticsService.getHistory(interval, eventId);
             res.json(history);
         } catch (err) {
             console.error(err);
             res.status(500).json({ message: 'Error fetching history' });
+        }
+    }
+
+    async getOnlineUsers(req, res) {
+        try {
+            const { eventId } = req.query;
+            const users = await this.analyticsService.getOnlineUsers(eventId);
+            res.json(users);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ message: 'Error fetching online users' });
         }
     }
     async exportAudienceReport(req, res) {

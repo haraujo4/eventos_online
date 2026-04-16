@@ -14,7 +14,11 @@ class StreamMapper {
             dbRow.created_at,
             dbRow.type,
             dbRow.title,
-            dbRow.description
+            dbRow.description,
+            dbRow.category,
+            dbRow.is_featured,
+            dbRow.scheduled_at,
+            dbRow.views
         );
     }
 
@@ -28,7 +32,10 @@ class StreamMapper {
             created_at: streamModel.createdAt,
             type: streamModel.type,
             title: streamModel.title,
-            description: streamModel.description
+            description: streamModel.description,
+            category: streamModel.category,
+            is_featured: streamModel.isFeatured,
+            scheduled_at: streamModel.scheduledAt
         };
     }
 

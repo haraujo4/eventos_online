@@ -24,8 +24,11 @@ export function ResourceManager() {
         pendingComments, fetchPendingComments, approveComment, deleteComment,
         questions, fetchQuestions, displayQuestion, deleteQuestion,
         eventSettings, updateSettings, mediaSettings, fetchMediaSettings,
+        updateEvent,
         socket
     } = useAdminStore();
+
+    const [selectedEventId, setSelectedEventId] = useState('');
 
     useEffect(() => {
         if (activeTab === 'polls') {
@@ -50,17 +53,22 @@ export function ResourceManager() {
         };
     }, [activeTab, socket]);
 
-    const [newPoll, setNewPoll] = useState({ question: '', options: ['', ''], streamId: '' });
+    const [newPoll, setNewPoll] = useState({ question: '', options: ['', ''], streamId: '', eventId: '' });
 
     const handleCreatePoll = async (e) => {
         e.preventDefault();
         try {
+            if (!newPoll.eventId) {
+                toast.error('Por favor, selecione um evento');
+                return;
+            }
             await createPoll({
                 question: newPoll.question,
                 options: newPoll.options.filter(o => o.trim() !== ''),
-                streamId: newPoll.streamId || null
+                streamId: newPoll.streamId || null,
+                eventId: newPoll.eventId
             });
-            setNewPoll({ question: '', options: ['', ''], streamId: '' });
+            setNewPoll({ question: '', options: ['', ''], streamId: '', eventId: '' });
             toast.success('Enquete criada com sucesso!');
         } catch (err) {
             toast.error('Erro ao criar enquete');
@@ -83,10 +91,22 @@ export function ResourceManager() {
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-bold uppercase text-gray-400">Recurso:</span>
                     <button
-                        onClick={() => updateSettings({ polls_enabled: !eventSettings?.polls_enabled })}
-                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${eventSettings?.polls_enabled ? 'bg-green-500 text-white shadow-lg' : 'bg-gray-400 text-white'}`}
+                        onClick={async () => {
+                            if (!selectedEventId) {
+                                toast.warning('Selecione um evento para alterar esta configuração');
+                                return;
+                            }
+                            const event = mediaSettings.streams.find(s => s.id == selectedEventId);
+                            await updateEvent(selectedEventId, { ...event, polls_enabled: !event?.polls_enabled });
+                            toast.success(`Enquetes ${!event?.polls_enabled ? 'habilitadas' : 'desabilitadas'} para este evento`);
+                        }}
+                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                            selectedEventId && mediaSettings.streams.find(s => s.id == selectedEventId)?.polls_enabled 
+                            ? 'bg-green-500 text-white shadow-lg' 
+                            : 'bg-gray-400 text-white'
+                        }`}
                     >
-                        {eventSettings?.polls_enabled ? 'Enquetes Habilitadas' : 'Enquetes Desabilitadas'}
+                        {selectedEventId && mediaSettings.streams.find(s => s.id == selectedEventId)?.polls_enabled ? 'Enquetes Habilitadas' : 'Enquetes Desabilitadas'}
                     </button>
                 </div>
             </div>
@@ -98,7 +118,7 @@ export function ResourceManager() {
                 </h3>
                 <form onSubmit={handleCreatePoll} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2">
+                        <div className="md:col-span-1">
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Pergunta</label>
                             <input
                                 type="text"
@@ -109,17 +129,21 @@ export function ResourceManager() {
                                 required
                             />
                         </div>
-                        <div className="md:col-span-2">
+                        <div className="md:col-span-1">
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Idioma / Stream</label>
                             <select
                                 value={newPoll.streamId}
                                 onChange={e => setNewPoll({ ...newPoll, streamId: e.target.value })}
                                 className="w-full px-4 py-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                                disabled={!selectedEventId}
                             >
-                                <option value="">Global</option>
-                                {mediaSettings.streams.map(s => (
-                                    <option key={s.id} value={s.id}>{s.language}</option>
-                                ))}
+                                <option value="">Global do Evento</option>
+                                {selectedEventId && mediaSettings.streams
+                                    .find(e => e.id == selectedEventId)
+                                    ?.streams?.map(s => (
+                                        <option key={s.id} value={s.id}>{s.language}</option>
+                                    ))
+                                }
                             </select>
                         </div>
                     </div>
@@ -151,14 +175,19 @@ export function ResourceManager() {
 
             <div className="space-y-4">
                 <h3 className="font-bold text-gray-700 dark:text-gray-300">Enquetes Anteriores</h3>
-                {polls.map(poll => (
+                {polls
+                    .filter(p => !selectedEventId || p.event_id == selectedEventId)
+                    .map(poll => (
                     <div key={poll.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg border dark:border-gray-700 flex items-center justify-between">
                         <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                                 <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                                    {poll.event_title || 'Evento Desconhecido'}
+                                </span>
+                                <span className="bg-gray-100 dark:bg-gray-800 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
                                     {poll.stream_language || 'Global'}
                                 </span>
-                                <p className="font-medium text-gray-900 dark:text-white">{poll.question}</p>
+                                <p className="font-medium text-gray-900 dark:text-white ml-2">{poll.question}</p>
                             </div>
                             <p className="text-[10px] text-gray-500">{new Date(poll.created_at).toLocaleString()}</p>
                         </div>
@@ -196,10 +225,22 @@ export function ResourceManager() {
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-bold uppercase text-gray-400">Status:</span>
                     <button
-                        onClick={() => updateSettings({ comments_enabled: !eventSettings?.comments_enabled })}
-                        className={`px-3 py-1 rounded-full text-xs font-bold ${eventSettings?.comments_enabled ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'}`}
+                        onClick={async () => {
+                            if (!selectedEventId) {
+                                toast.warning('Selecione um evento para alterar esta configuração');
+                                return;
+                            }
+                            const event = mediaSettings.streams.find(s => s.id == selectedEventId);
+                            await updateEvent(selectedEventId, { ...event, comments_enabled: !event?.comments_enabled });
+                            toast.success(`Comentários ${!event?.comments_enabled ? 'habilitados' : 'desabilitadas'} para este evento`);
+                        }}
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${
+                            selectedEventId && mediaSettings.streams.find(s => s.id == selectedEventId)?.comments_enabled 
+                            ? 'bg-green-500 text-white' 
+                            : 'bg-gray-400 text-white'
+                        }`}
                     >
-                        {eventSettings?.comments_enabled ? 'Habilitado' : 'Desabilitado'}
+                        {selectedEventId && mediaSettings.streams.find(s => s.id == selectedEventId)?.comments_enabled ? 'Habilitado' : 'Desabilitado'}
                     </button>
                 </div>
             </div>
@@ -208,22 +249,37 @@ export function ResourceManager() {
                 <table className="w-full text-sm text-left">
                     <thead className="bg-gray-50 dark:bg-gray-900 border-b dark:border-gray-700">
                         <tr>
+                            <th className="px-6 py-3 font-semibold">Evento / Idioma</th>
                             <th className="px-6 py-3 font-semibold">Usuário</th>
                             <th className="px-6 py-3 font-semibold">Comentário</th>
                             <th className="px-6 py-3 font-semibold">Ações</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y dark:divide-gray-700">
-                        {pendingComments.length === 0 ? (
-                            <tr><td colSpan="3" className="px-6 py-8 text-center text-gray-500">Nenhum comentário pendente</td></tr>
+                        {pendingComments
+                            .filter(c => !selectedEventId || c.event_id == selectedEventId)
+                            .length === 0 ? (
+                            <tr><td colSpan="4" className="px-6 py-8 text-center text-gray-500">Nenhum comentário pendente</td></tr>
                         ) : (
-                            pendingComments.map(comment => (
+                            pendingComments
+                                .filter(c => !selectedEventId || c.event_id == selectedEventId)
+                                .map(comment => (
                                 <tr key={comment.id}>
                                     <td className="px-6 py-4">
-                                        <p className="font-medium">{comment.user_name}</p>
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded font-black uppercase w-fit">
+                                                {comment.event_title || 'Global'}
+                                            </span>
+                                            <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 px-2 py-0.5 rounded font-bold uppercase w-fit">
+                                                {comment.stream_language || 'Global'}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <p className="font-medium text-gray-900 dark:text-white">{comment.user_name}</p>
                                         <p className="text-xs text-gray-500">{comment.user_email}</p>
                                     </td>
-                                    <td className="px-6 py-4">{comment.content}</td>
+                                    <td className="px-6 py-4 text-gray-700 dark:text-gray-300">{comment.content}</td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-2">
                                             <button onClick={() => approveComment(comment.id)} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100" title="Aprovar">
@@ -252,32 +308,51 @@ export function ResourceManager() {
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-bold uppercase text-gray-400">Status:</span>
                     <button
-                        onClick={() => updateSettings({ questions_enabled: !eventSettings?.questions_enabled })}
-                        className={`px-3 py-1 rounded-full text-xs font-bold ${eventSettings?.questions_enabled ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'}`}
+                        onClick={async () => {
+                            if (!selectedEventId) {
+                                toast.warning('Selecione um evento para alterar esta configuração');
+                                return;
+                            }
+                            const event = mediaSettings.streams.find(s => s.id == selectedEventId);
+                            await updateEvent(selectedEventId, { ...event, questions_enabled: !event?.questions_enabled });
+                            toast.success(`Perguntas ${!event?.questions_enabled ? 'habilitadas' : 'desabilitadas'} para este evento`);
+                        }}
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${
+                            selectedEventId && mediaSettings.streams.find(s => s.id == selectedEventId)?.questions_enabled 
+                            ? 'bg-green-500 text-white' 
+                            : 'bg-gray-400 text-white'
+                        }`}
                     >
-                        {eventSettings?.questions_enabled ? 'Habilitado' : 'Desabilitado'}
+                        {selectedEventId && mediaSettings.streams.find(s => s.id == selectedEventId)?.questions_enabled ? 'Habilitado' : 'Desabilitado'}
                     </button>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {questions.length === 0 ? (
+                {questions
+                    .filter(q => !selectedEventId || q.event_id == selectedEventId)
+                    .length === 0 ? (
                     <div className="col-span-2 py-12 text-center text-gray-500 bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700">
-                        Nenhuma pergunta recebida ainda
+                        {selectedEventId ? 'Nenhuma pergunta para este evento' : 'Nenhuma pergunta recebida ainda'}
                     </div>
                 ) : (
-                    questions.map(q => (
+                    questions
+                        .filter(q => !selectedEventId || q.event_id == selectedEventId)
+                        .map(q => (
                         <div key={q.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl border dark:border-gray-700 shadow-sm relative overflow-hidden">
                             {q.displayed_at && (
                                 <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] px-2 py-0.5 rounded-bl-lg font-bold">EXIBIDA</div>
                             )}
                             <div className="flex justify-between items-start mb-3">
                                 <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
-                                            {q.stream_language || 'Global'}
+                                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                                        <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-black px-2 py-0.5 rounded uppercase border border-blue-200 dark:border-blue-800">
+                                            {q.event_title || 'Global'}
                                         </span>
-                                        <p className="font-bold text-gray-800 dark:text-white">{q.user_name}</p>
+                                        <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                                            {q.stream_language || 'Idiomas'}
+                                        </span>
+                                        <p className="font-bold text-gray-800 dark:text-white ml-1">{q.user_name}</p>
                                     </div>
                                     <p className="text-xs text-gray-400">{q.user_email}</p>
                                 </div>
@@ -320,6 +395,25 @@ export function ResourceManager() {
                 <div>
                     <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Recursos do Evento</h2>
                     <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Gerencie enquetes, comentários e perguntas em tempo real</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <span className="text-xs text-gray-400 font-bold uppercase whitespace-nowrap">Filtrar por Evento:</span>
+                    <select 
+                        value={selectedEventId}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setSelectedEventId(val);
+                            if (val) {
+                                setNewPoll(prev => ({ ...prev, eventId: val }));
+                            }
+                        }}
+                        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-700 dark:text-gray-300 min-w-[200px]"
+                    >
+                        <option value="">TODOS OS EVENTOS</option>
+                        {mediaSettings.streams.map(event => (
+                            <option key={event.id} value={event.id}>{event.title}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 

@@ -27,7 +27,7 @@ export const useAdminStore = create((set, get) => ({
     connectSocket: () => {
         if (get().socket) return;
 
-        const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3011');
+        const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000');
 
         socket.on('connect', () => {
         });
@@ -66,6 +66,19 @@ export const useAdminStore = create((set, get) => ({
             set({ currentViewers: data.count });
         });
 
+        socket.on('stats:viewers:streams', (counts) => {
+            set({ streamViewers: counts });
+        });
+
+        socket.on('stats:activity', (activity) => {
+            set(state => ({
+                stats: {
+                    ...state.stats,
+                    recentActivity: [activity, ...(state.stats?.recentActivity || [])].slice(0, 5)
+                }
+            }));
+        });
+
         socket.on('settings:update', (data) => {
             set(state => ({
                 eventSettings: { ...state.eventSettings, ...data }
@@ -86,61 +99,90 @@ export const useAdminStore = create((set, get) => ({
     fetchMediaSettings: async () => {
         try {
             const response = await api.get('/media');
-
-            const data = response.data;
-            if (Array.isArray(data)) {
-                set(state => ({
-                    mediaSettings: { ...state.mediaSettings, streams: data }
-                }));
-            } else {
-                set(state => ({
-                    mediaSettings: {
-                        ...state.mediaSettings,
-                        streams: data.streams || [],
-                        isLive: data.isLive ?? false
-                    }
-                }));
-            }
+            // A API agora retorna { events: [], isLive: boolean }
+            const { events, isLive } = response.data;
+            
+            set(state => ({
+                mediaSettings: { 
+                    ...state.mediaSettings, 
+                    streams: events || [],
+                    isLive: isLive ?? false
+                }
+            }));
         } catch (err) {
             console.error('Error fetching media settings:', err);
+        }
+    },
+
+    fetchEventById: async (id) => {
+        try {
+            const response = await api.get(`/media/${id}`);
+            return response.data;
+        } catch (err) {
+            console.error('Error fetching event by id:', err);
+            return null;
         }
     },
 
     toggleLive: async () => {
         try {
             const currentLive = get().mediaSettings.isLive;
-            const response = await api.post('/media/live', { isLive: !currentLive });
+            const response = await api.post('/media/live', { is_live: !currentLive });
+            const newState = response.data.isLive;
+            
             set(state => ({
-                mediaSettings: { ...state.mediaSettings, isLive: response.data.isLive }
+                mediaSettings: { ...state.mediaSettings, isLive: newState }
             }));
+
+            if (newState) {
+                toast.success('Modo AO VIVO ativado!');
+            } else {
+                toast.info('Modo AO VIVO desativado.');
+            }
         } catch (err) {
             console.error(err);
+            toast.error('Erro ao alternar modo ao vivo');
         }
     },
 
 
 
 
-    addStream: async (streamData, videoFile, posterFile) => {
+    addEvent: async (eventData, posterFile, videoFiles = []) => {
         try {
             const formData = new FormData();
-            formData.append('language', streamData.language);
-            formData.append('title', streamData.title || '');
-            formData.append('description', streamData.description || '');
-            formData.append('url', streamData.url || '');
+            formData.append('title', eventData.title || '');
+            formData.append('description', eventData.description || '');
+            formData.append('category', eventData.category || 'Geral');
+            formData.append('is_featured', eventData.is_featured);
+            formData.append('scheduled_at', eventData.scheduled_at || '');
+            if (eventData.poster_url) formData.append('posterUrl', eventData.poster_url);
+            
+            // Interaction Flags
+            formData.append('chat_enabled', eventData.chat_enabled ?? true);
+            formData.append('chat_global', eventData.chat_global ?? true);
+            formData.append('chat_moderated', eventData.chat_moderated ?? false);
+            formData.append('polls_enabled', eventData.polls_enabled ?? true);
+            formData.append('questions_enabled', eventData.questions_enabled ?? true);
+            formData.append('comments_enabled', eventData.comments_enabled ?? true);
+            formData.append('is_live', eventData.is_live ?? false);
+            
+            // Critical fix: Handle both 'languages' and 'streams'
+            const streamsToAdd = eventData.languages || eventData.streams || [];
+            formData.append('streams', JSON.stringify(streamsToAdd));
 
-            if (streamData.type) formData.append('type', streamData.type);
-
-            if (streamData.posterUrl) formData.append('poster_url', streamData.posterUrl);
-
-            if (videoFile) formData.append('video', videoFile);
             if (posterFile) formData.append('poster', posterFile);
+            
+            // Adicionar arquivos de vídeo indexados
+            videoFiles.forEach((file, index) => {
+                if (file) formData.append(`video_${index}`, file);
+            });
 
             const response = await api.post('/media', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-
+            get().fetchMediaSettings();
             return response.data;
         } catch (err) {
             console.error(err);
@@ -148,12 +190,72 @@ export const useAdminStore = create((set, get) => ({
         }
     },
 
-    removeStream: async (id) => {
+    updateEvent: async (id, eventData, posterFile, videoFiles = []) => {
         try {
-            await api.delete(`/media/${id}`);
+            const formData = new FormData();
+            formData.append('title', eventData.title || '');
+            formData.append('description', eventData.description || '');
+            formData.append('category', eventData.category || 'Geral');
+            formData.append('is_featured', eventData.is_featured);
+            formData.append('scheduled_at', eventData.scheduled_at || '');
+            if (eventData.poster_url) formData.append('posterUrl', eventData.poster_url);
 
+            // Interaction Flags - Ensure we use consistent naming and fallbacks
+            formData.append('chat_enabled', eventData.chat_enabled ?? true);
+            formData.append('chat_global', eventData.chat_global ?? true);
+            formData.append('chat_moderated', eventData.chat_moderated ?? false);
+            formData.append('polls_enabled', eventData.polls_enabled ?? true);
+            formData.append('questions_enabled', eventData.questions_enabled ?? true);
+            formData.append('comments_enabled', eventData.comments_enabled ?? true);
+            formData.append('is_live', eventData.is_live ?? false);
+            
+            // Critical fix: Handle both 'languages' (from MediaConfig) and 'streams' (from API/Store)
+            const streamsToUpdate = eventData.languages || eventData.streams || [];
+            formData.append('streams', JSON.stringify(streamsToUpdate));
+
+            if (posterFile) formData.append('poster', posterFile);
+            
+            videoFiles.forEach((file, index) => {
+                if (file) formData.append(`video_${index}`, file);
+            });
+
+            await api.put(`/media/${id}`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            get().fetchMediaSettings();
+            return true;
         } catch (err) {
             console.error(err);
+            throw err;
+        }
+    },
+
+    removeEvent: async (id) => {
+        try {
+            await api.delete(`/media/${id}`);
+            await get().fetchMediaSettings();
+        } catch (err) {
+            console.error(err);
+        }
+    },
+
+    toggleEventLive: async (id, currentIsLive) => {
+        try {
+            const newStatus = !currentIsLive;
+            await api.patch(`/media/${id}/live`, { is_live: newStatus });
+            get().fetchMediaSettings();
+            
+            if (newStatus) {
+                toast.success('Evento agora está AO VIVO!');
+            } else {
+                toast.info('Evento não está mais ao vivo.');
+            }
+            return true;
+        } catch (err) {
+            console.error(err);
+            toast.error('Erro ao alternar modo ao vivo do evento');
+            return false;
         }
     },
 
@@ -164,6 +266,9 @@ export const useAdminStore = create((set, get) => ({
             if (streamData.title) formData.append('title', streamData.title);
             if (streamData.description) formData.append('description', streamData.description);
             if (streamData.url) formData.append('url', streamData.url);
+            if (streamData.category) formData.append('category', streamData.category);
+            if (streamData.is_featured !== undefined) formData.append('is_featured', streamData.is_featured);
+            if (streamData.scheduled_at) formData.append('scheduled_at', streamData.scheduled_at);
             if (streamData.type) formData.append('type', streamData.type);
             if (streamData.posterUrl) formData.append('poster_url', streamData.posterUrl);
 
@@ -187,16 +292,17 @@ export const useAdminStore = create((set, get) => ({
         totalUsers: 0,
         totalStreams: 0,
         activeStreams: 0,
-        totalMessages: 0
-    },
-    stats: {
-        totalUsers: 0,
-        totalStreams: 0,
-        activeStreams: 0,
-        totalMessages: 0
+        totalMessages: 0,
+        totalLikes: 0,
+        totalDislikes: 0,
+        totalPollVotes: 0,
+        pendingModeration: 0,
+        recentActivity: []
     },
     currentViewers: 0,
+    streamViewers: {}, // Map of streamId -> count
     viewerStatsHistory: [],
+    onlineUsers: [], // List of users currently online
     chatHistory: [],
 
 
@@ -292,15 +398,15 @@ export const useAdminStore = create((set, get) => ({
         }
     },
 
-    exportChat: async () => {
+    exportChat: async (eventId = null) => {
         try {
-            const response = await api.get('/chat/export', { responseType: 'blob' });
-
+            const query = eventId ? `?eventId=${eventId}` : '';
+            const response = await api.get(`/chat/export${query}`, { responseType: 'blob' });
 
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', 'chat_history.xlsx');
+            link.setAttribute('download', eventId ? `chat_history_event_${eventId}.xlsx` : 'chat_history_geral.xlsx');
             document.body.appendChild(link);
             link.click();
             link.parentNode.removeChild(link);
@@ -310,9 +416,10 @@ export const useAdminStore = create((set, get) => ({
     },
 
 
-    fetchChatHistory: async () => {
+    fetchChatHistory: async (eventId = null) => {
         try {
-            const response = await api.get('/chat?includeAll=true');
+            const query = eventId ? `?includeAll=true&streamId=${eventId}` : '?includeAll=true';
+            const response = await api.get(`/chat${query}`);
             set({ chatHistory: response.data });
         } catch (err) {
             console.error('Error fetching chat history:', err);
@@ -365,9 +472,10 @@ export const useAdminStore = create((set, get) => ({
     },
 
 
-    fetchStats: async () => {
+    fetchStats: async (eventId = null) => {
         try {
-            const response = await api.get('/stats');
+            const query = eventId ? `?eventId=${eventId}` : '';
+            const response = await api.get(`/stats${query}`);
             set({ stats: response.data });
         } catch (err) {
             console.error('Error fetching stats:', err);
@@ -456,9 +564,10 @@ export const useAdminStore = create((set, get) => ({
         }
     },
 
-    fetchAnalyticsHistory: async (interval = 'minute') => {
+    fetchAnalyticsHistory: async (interval = 'minute', eventId = null) => {
         try {
-            const response = await api.get(`/stats/history?interval=${interval}`);
+            const query = eventId ? `&eventId=${eventId}` : '';
+            const response = await api.get(`/stats/history?interval=${interval}${query}`);
 
             const formatted = response.data.map(item => {
                 const date = new Date(item.time_bucket);
@@ -491,6 +600,16 @@ export const useAdminStore = create((set, get) => ({
             link.parentNode.removeChild(link);
         } catch (err) {
             console.error('Error exporting audience report:', err);
+        }
+    },
+
+    fetchOnlineUsers: async (eventId = null) => {
+        try {
+            const query = eventId ? `?eventId=${eventId}` : '';
+            const response = await api.get(`/stats/online${query}`);
+            set({ onlineUsers: response.data });
+        } catch (err) {
+            console.error('Error fetching online users:', err);
         }
     },
 

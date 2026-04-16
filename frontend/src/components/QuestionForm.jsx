@@ -4,7 +4,7 @@ import { Send, HelpCircle, X, CheckCircle } from 'lucide-react';
 import api from '../services/api';
 import { toast } from 'react-toastify';
 
-export default function QuestionForm({ isOpen, onClose, streamId }) {
+export default function QuestionForm({ isOpen, onClose, streamId, eventId }) {
     const { eventSettings } = useAdminStore();
     const [content, setContent] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -16,7 +16,7 @@ export default function QuestionForm({ isOpen, onClose, streamId }) {
 
         setIsSubmitting(true);
         try {
-            await api.post('/questions', { streamId, content });
+            await api.post('/questions', { streamId, content, eventId });
             setContent('');
             setSubmitted(true);
         } catch (err) {
@@ -31,7 +31,7 @@ export default function QuestionForm({ isOpen, onClose, streamId }) {
         onClose();
     };
 
-    if (!isOpen || !eventSettings?.questions_enabled) return null;
+    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">

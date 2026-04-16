@@ -5,22 +5,33 @@ import { Trash2, ShieldAlert, Star, Send, Download, Check, Clock } from 'lucide-
 import { useAuthStore } from '../../store/useAuthStore';
 
 export function ChatModeration() {
-    const { chatHistory, fetchChatHistory, deleteMessage, toggleHighlight } = useAdminStore();
-    const { sendMessage, connectSocket, pendingMessages, approveMessage, fetchPendingMessages } = useChatStore();
+    const { chatHistory, fetchChatHistory, deleteMessage, toggleHighlight, mediaSettings, fetchMediaSettings } = useAdminStore();
+    const { sendMessage, connectSocket, pendingMessages, approveMessage, fetchPendingMessages, setActiveStream } = useChatStore();
     const { user } = useAuthStore();
     const [activeTab, setActiveTab] = useState('pending');
     const [adminMsg, setAdminMsg] = useState('');
+    const [selectedEventId, setSelectedEventId] = useState('');
 
     useEffect(() => {
-        fetchChatHistory();
-        useAdminStore.getState().fetchUsers();
-
-        fetchPendingMessages();
+        fetchMediaSettings();
         connectSocket();
+    }, [fetchMediaSettings, connectSocket]);
 
-        const interval = setInterval(fetchChatHistory, 5000);
+    useEffect(() => {
+        // Fetch users for moderation context
+        useAdminStore.getState().fetchUsers();
+        
+        // Initial fetch
+        fetchChatHistory(selectedEventId);
+        fetchPendingMessages(selectedEventId);
+
+        const interval = setInterval(() => {
+            fetchChatHistory(selectedEventId);
+            fetchPendingMessages(selectedEventId);
+        }, 5000);
+
         return () => clearInterval(interval);
-    }, [fetchChatHistory, connectSocket, fetchPendingMessages]);
+    }, [selectedEventId, fetchChatHistory, fetchPendingMessages]);
 
     const handleSendAdmin = (e) => {
         e.preventDefault();
@@ -36,8 +47,31 @@ export function ChatModeration() {
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Moderação do Chat</h2>
 
             {/* Admin Message Input */}
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Enviar como Moderador</h3>
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <h3 className="font-semibold text-gray-700 dark:text-gray-300">Enviar como Moderador</h3>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400 font-bold uppercase">Filtrar por Evento:</span>
+                        <select 
+                            value={selectedEventId}
+                            onChange={(e) => {
+                                const newEventId = e.target.value;
+                                setSelectedEventId(newEventId);
+                                // Pick the first stream of this event as active for sending
+                                const event = mediaSettings.streams.find(s => s.id == newEventId);
+                                if (event && event.streams?.[0]) {
+                                    setActiveStream(event.streams[0].id);
+                                }
+                            }}
+                            className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                        >
+                            <option value="">TODOS OS EVENTOS</option>
+                            {mediaSettings.streams.map(event => (
+                                <option key={event.id} value={event.id}>{event.title}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
                 <form onSubmit={handleSendAdmin} className="flex gap-2">
                     <input
                         type="text"
@@ -105,6 +139,11 @@ export function ChatModeration() {
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="font-bold text-gray-900 dark:text-white">{msg.userName}</span>
+                                            {msg.eventTitle && (
+                                                <span className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20 font-black uppercase whitespace-nowrap">
+                                                    {msg.eventTitle}
+                                                </span>
+                                            )}
                                             {msg.streamName && (
                                                 <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/20 font-medium whitespace-nowrap">
                                                     {msg.streamName}
@@ -144,7 +183,7 @@ export function ChatModeration() {
                         <div className="flex items-center gap-4">
                             <h3 className="font-semibold text-gray-700 dark:text-gray-300">Histórico do Chat</h3>
                             <button
-                                onClick={() => useAdminStore.getState().exportChat()}
+                                onClick={() => useAdminStore.getState().exportChat(selectedEventId)}
                                 className="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 px-2.5 py-1.5 rounded-lg border border-green-200 dark:border-green-800 transition-colors font-medium"
                                 title="Exportar histórico do chat para Excel"
                             >
@@ -152,10 +191,16 @@ export function ChatModeration() {
                                 Exportar
                             </button>
                         </div>
-                        <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-1 rounded-full font-medium flex items-center gap-1">
-                            <ShieldAlert className="w-3 h-3" />
-                            Modo: {pendingMessages.length > 0 || true ? 'Moderado' : 'Aberto'}
-                        </span>
+                        {selectedEventId && (
+                            <span className={`text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1 ${
+                                mediaSettings.streams.find(s => s.id == selectedEventId)?.chat_moderated 
+                                ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' 
+                                : 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                            }`}>
+                                <ShieldAlert className="w-3 h-3" />
+                                Modo: {mediaSettings.streams.find(s => s.id == selectedEventId)?.chat_moderated ? 'Moderado' : 'Aberto'}
+                            </span>
+                        )}
                     </div>
                     <div className="divide-y divide-gray-100 dark:divide-gray-700">
                         {chatHistory.map((msg) => {
@@ -167,6 +212,11 @@ export function ChatModeration() {
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="font-bold text-gray-900 dark:text-white">{msg.userName}</span>
+                                            {msg.eventTitle && (
+                                                <span className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20 font-black uppercase whitespace-nowrap">
+                                                    {msg.eventTitle}
+                                                </span>
+                                            )}
                                             {msg.streamName && (
                                                 <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/20 font-medium whitespace-nowrap">
                                                     {msg.streamName}

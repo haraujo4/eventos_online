@@ -3,18 +3,45 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Player from './pages/Player';
 import Admin from './pages/Admin';
+import Midiateca from './pages/Midiateca';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useAdminStore } from './store/useAdminStore';
 import { getFullImageUrl } from './utils/urlHelper';
+import { useAuthStore } from './store/useAuthStore';
+
+function RootRedirect() {
+  const { eventSettings, mediaSettings } = useAdminStore();
+  const { isAuthenticated } = useAuthStore();
+
+  if (eventSettings?.midiateca_enabled) {
+    return <Midiateca />;
+  }
+
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
+  const featuredEvent = mediaSettings.streams.find(e => e.is_featured);
+  if (featuredEvent) {
+    return <Navigate to={`/player?id=${featuredEvent.id}`} replace />;
+  }
+
+  if (mediaSettings.streams.length > 0) {
+    return <Navigate to={`/player?id=${mediaSettings.streams[0].id}`} replace />;
+  }
+
+  return <Login />;
+}
 
 function App() {
-  const { eventSettings, fetchSettings, theme } = useAdminStore();
+  const { eventSettings, fetchSettings, fetchMediaSettings, theme } = useAdminStore();
 
   useEffect(() => {
     fetchSettings();
-  }, [fetchSettings]);
+    fetchMediaSettings();
+  }, [fetchSettings, fetchMediaSettings]);
 
   // Apply Theme
   useEffect(() => {
@@ -47,9 +74,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="/login" element={<Login />} />
 
-        { }
         <Route element={<ProtectedRoute allowedRoles={['user', 'admin', 'moderator']} />}>
           <Route path="/player" element={<Player />} />
         </Route>

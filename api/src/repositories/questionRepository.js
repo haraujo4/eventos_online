@@ -1,22 +1,23 @@
 const db = require('../config/db');
 
 class QuestionRepository {
-    async create(userId, streamId, content) {
+    async create(userId, streamId, content, eventId) {
         const query = `
-            INSERT INTO questions (user_id, stream_id, content)
-            VALUES ($1, $2, $3)
+            INSERT INTO questions (user_id, stream_id, content, event_id)
+            VALUES ($1, $2, $3, $4)
             RETURNING *;
         `;
-        const result = await db.query(query, [userId, streamId, content]);
+        const result = await db.query(query, [userId, streamId, content, eventId]);
         return result.rows[0];
     }
 
     async getAll() {
         const query = `
-            SELECT q.*, u.name as user_name, u.email as user_email, s.language as stream_language
+            SELECT q.*, u.name as user_name, u.email as user_email, s.language as stream_language, e.title as event_title
             FROM questions q
             JOIN users u ON q.user_id = u.id
             LEFT JOIN streams s ON q.stream_id = s.id
+            LEFT JOIN media_events e ON q.event_id = e.id
             ORDER BY q.created_at DESC;
         `;
         const result = await db.query(query);

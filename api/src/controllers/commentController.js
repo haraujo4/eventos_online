@@ -16,12 +16,12 @@ class CommentController {
 
     async addComment(req, res) {
         try {
-            const { streamId, content } = req.body;
+            const { streamId, content, eventId } = req.body;
             const userId = req.user.id;
 
             if (!content) return res.status(400).json({ error: 'Content is required' });
 
-            const comment = await commentRepository.create(userId, streamId, content);
+            const comment = await commentRepository.create(userId, streamId, content, eventId);
 
             // Notify admins/moderators that a new comment is pending
             if (this.io) {

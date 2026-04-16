@@ -14,12 +14,12 @@ class QuestionController {
 
     async addQuestion(req, res) {
         try {
-            const { streamId, content } = req.body;
+            const { streamId, content, eventId } = req.body;
             const userId = req.user.id;
 
             if (!content) return res.status(400).json({ error: 'Content is required' });
 
-            const question = await questionRepository.create(userId, streamId, content);
+            const question = await questionRepository.create(userId, streamId, content, eventId);
 
             if (this.io) {
                 this.io.emit('question:new', question);
@@ -59,7 +59,8 @@ class QuestionController {
                         user_name: fullQuestion.user_name,
                         content: fullQuestion.content,
                         duration: 15000,
-                        streamId: isGlobal ? null : (fullQuestion.stream_id ? Number(fullQuestion.stream_id) : null)
+                        streamId: isGlobal ? null : (fullQuestion.stream_id ? Number(fullQuestion.stream_id) : null),
+                        eventId: fullQuestion.event_id
                     });
                 }
             }
